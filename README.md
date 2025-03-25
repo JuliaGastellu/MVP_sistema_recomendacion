@@ -148,16 +148,6 @@ print(response.json())
 
 ```
 
-## 📊 Insights Visuales
-
-![Distribución de Géneros](docs/genre_distribution.png)
-
-*Análisis de popularidad de géneros cinematográficos*
-
-![Word Cloud](docs/wordcloud.png)
-
-*Términos más frecuentes en reseñas de películas*
-
 ## 🤝 Cómo Contribuir
 
 1. Haz fork del proyecto
