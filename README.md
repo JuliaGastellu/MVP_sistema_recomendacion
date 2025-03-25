@@ -64,7 +64,7 @@ E --> F[Recomendaciones en Tiempo Real]
 
 git clone https://github.com/JuliaGastellu/MVP_sistema_recomendacion.git
 
-cd sistema-recomendacion-peliculas
+cd MVP_sistema_recomendacion
 
 ```
 
