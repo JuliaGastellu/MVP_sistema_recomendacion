@@ -108,8 +108,6 @@ uvicorn app:app --reload
 
 ```
 
-Visita la documentación interactiva: http://localhost:8000/docs
-
 ### 🔍 Ejemplo de Consulta
 
 ```python
