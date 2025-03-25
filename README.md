@@ -36,7 +36,7 @@ D --> E[API FastAPI]
 
 E --> F[Recomendaciones en Tiempo Real]
 
-```
+```markdown
 
 ## 📦 Tecnologías Clave
 
@@ -172,7 +172,5 @@ print(response.json())
 ---
 
 ⭐ ¿Te gusta el proyecto? Dale una estrella en GitHub para apoyar su desarrollo!
-
-```
 
 
