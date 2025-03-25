@@ -67,7 +67,7 @@ Ambos modelos se exponen mediante endpoints independientes dentro de la API, per
 
 | **Visualización**   | Matplotlib, Seaborn, WordCloud                                              |
 
-| **Despliegue**      | Render, Docker                                                              |
+| **Despliegue**      | Render                                                           |
 
 ## 🛠️ Instalación Rápida
 
