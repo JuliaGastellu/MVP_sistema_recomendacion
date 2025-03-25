@@ -36,7 +36,7 @@ D --> E[API FastAPI]
 
 E --> F[Recomendaciones en Tiempo Real]
 
-```markdown
+```
 
 ## 📦 Tecnologías Clave
 
