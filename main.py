@@ -10,7 +10,7 @@ nltk.download('stopwords')
 stopwords_es = stopwords.words('spanish')
 
 # Cargar el DataFrame filtrado
-df_filtrado = pd.read_parquet('C:/Users/jugas/OneDrive/Escritorio/Movie recommender/MVP_sistema_recomendacion/proyecto/data/movies_filtrado.parquet')
+df_filtrado = pd.read_parquet('proyecto/data/movies_filtrado.parquet')
 
 # Aseguramos que las reseñas no tengan valores nulos
 df_filtrado['reseñas'] = df_filtrado['reseñas'].fillna('')
