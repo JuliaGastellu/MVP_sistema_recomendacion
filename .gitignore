@@ -1,11 +1,3 @@
-# Archivos temporales de sistema operativo
-/tmp
-/.DS_Store
-
-# Archivos de caché
-/node_modules
-/.cache
-
 # Archivos de entorno
 .env
 .env.*
@@ -14,13 +6,6 @@
 /dist
 /build
 *.log
-
-# Archivos de configuración específicos del IDE
-.idea
-.vscode
-
-# Archivos grandes o generados
-*.csv
 
 # Descarte archivos creados por el sistema
 /.idea/
@@ -36,22 +21,10 @@ temp/
 build/
 dist/
 
-# Descarte archivos de configuración local
-.env
-.env.*
-
-# Descarte archivos de base de datos
-db.sqlite3
-*.sqlite
-
 # Descarte archivos de pruebas
 tests/
 *.pyc
 *.pyo
-
-# Descarte archivos de la base de datos
-*.xlsx
-*.pdf
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

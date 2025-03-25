@@ -8,7 +8,7 @@
 
 Un sistema inteligente que recomienda películas basado en análisis de reseñas utilizando **Procesamiento de Lenguaje Natural** y algoritmos de similitud. ¡Descubre tu próxima película favorita!
 
-🌐 **API en vivo**: [Desplegado en Render](https://sistema-recomendacion-peliculas.onrender.com)
+🌐 **API en vivo**: [Desplegado en Render](https://mvp-sistema-recomendacion.onrender.com)
 
 ## 🚀 Características Destacadas
 
