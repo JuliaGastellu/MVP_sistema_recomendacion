@@ -12,12 +12,9 @@ Un sistema inteligente que recomienda películas basado en análisis de reseñas
 
 ## 🚀 Características Destacadas
 
-- **Recomendaciones Personalizadas**: Obtén sugerencias basadas en similitud semántica de reseñas.
-
+- **Recomendaciones Personalizadas**: Obtén sugerencias basadas en similitud semántica de reseñas y géneros.
 - **Pipeline de Datos Integrado**: Extracción, limpieza y transformación automatizada de datos de TMDb.
-
 - **Visualizaciones Interesantes**: Insights sobre géneros, puntuaciones y tendencias cinematográficas.
-
 - **API RESTful**: Interfaz moderna con documentación Swagger integrada.
 
 ## 🧠 Arquitectura del Sistema
@@ -30,13 +27,29 @@ A[TMDb API] --> B[Extracción de Datos]
 
 B --> C[Limpieza y NLP]
 
-C --> D[Modelo de Similitud]
+C --> D[Modelos de Recomendación]
 
 D --> E[API FastAPI]
 
 E --> F[Recomendaciones en Tiempo Real]
 
 ```
+
+## 📖 Descripción del Modelo
+
+El sistema implementa dos enfoques complementarios de recomendación basados en **Procesamiento de Lenguaje Natural (NLP)**:
+
+1. **Modelo basado en TF-IDF y Similitud de Coseno**
+   - Se procesan las reseñas de los usuarios aplicando **TF-IDF** para extraer términos relevantes.
+   - Se calcula la **similitud de coseno** entre películas para identificar aquellas con descripciones y reseñas similares.
+   - Este enfoque es útil cuando se busca encontrar recomendaciones basadas en el contenido textual de las películas.
+
+2. **Modelo basado en Embeddings de Sentence Transformers**
+   - Se utiliza el modelo `all-MiniLM-L6-v2` de **Sentence Transformers** para representar semánticamente los géneros de las películas.
+   - Se calculan vectores representativos de los géneros y se compara la similitud utilizando **cosine similarity**.
+   - Este método permite ofrecer recomendaciones basadas en el contexto de los géneros cinematográficos.
+
+Ambos modelos se exponen mediante endpoints independientes dentro de la API, permitiendo a los usuarios seleccionar el tipo de recomendación más adecuado según sus necesidades.
 
 ## 📦 Tecnologías Clave
 
@@ -48,7 +61,7 @@ E --> F[Recomendaciones en Tiempo Real]
 
 | **API Framework**   | FastAPI, Uvicorn                                                            |
 
-| **NLP**             | spaCy, NLTK, TF-IDF                                                         |
+| **NLP**             | spaCy, NLTK, TF-IDF, Sentence Transformers                                  |
 
 | **Data Science**    | Pandas, Scikit-learn, NumPy                                                 |
 
@@ -110,56 +123,47 @@ uvicorn app:app --reload
 
 ### 🔍 Ejemplo de Consulta
 
-```python
+#### Recomendaciones basadas en reseñas (TF-IDF + Cosine Similarity)
 
+```python
 import requests
 
-response = requests.get("http://localhost:8000/recomendacion/Inception")
+response = requests.get("http://localhost:8000/recomendacion/reseñas/Inception")
 
 print(response.json())
+```
 
+#### Recomendaciones basadas en géneros (Embeddings de Sentence Transformers)
+
+```python
+response = requests.get("http://localhost:8000/recomendacion/generos/Inception")
+
+print(response.json())
 ```
 
 **Salida Esperada:**
 
 ```json
-
 {
-
 "pelicula_consultada": "Inception",
-
 "recomendaciones": [
-
 "The Matrix",
-
 "Interstellar",
-
 "The Prestige",
-
 "Memento",
-
 "Tenet"
-
 ]
-
 }
-
 ```
 
 ## 🤝 Cómo Contribuir
 
 1. Haz fork del proyecto
-
 2. Crea tu feature branch (`git checkout -b feature/nueva-funcionalidad`)
-
 3. Realiza tus cambios
-
 4. Haz commit (`git commit -am 'Add nueva funcionalidad'`)
-
 5. Push a la rama (`git push origin feature/nueva-funcionalidad`)
-
 6. Abre un Pull Request
-
 
 ## ✒️ Autora
 
@@ -170,5 +174,3 @@ print(response.json())
 ---
 
 ⭐ ¿Te gusta el proyecto? Dale una estrella en GitHub para apoyar su desarrollo!
-
-
