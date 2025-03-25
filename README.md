@@ -1,80 +1,188 @@
-# 🎬 Movie Recommendation System & API (MVP)
+# 🎬 Sistema de Recomendación de Películas con NLP
 
-## 📌 Overview  
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=FastAPI&logoColor=white)
 
-This project is part of an evaluation task focused on developing a **Minimum Viable Product (MVP)** using **FastAPI**. The system includes endpoints for querying specific data from a movie database and a **personalized recommendation engine** leveraging **machine learning techniques**.  
+![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
 
-## 📂 Project Structure  
+![TMDb](https://img.shields.io/badge/TMDb-01D277?style=for-the-badge&logo=TheMovieDatabase&logoColor=white)
 
-- **`data/`**: Preprocessed and processed datasets stored in **Parquet** format.  
-- **`notebooks/`**: Jupyter Notebooks for different project stages:  
-  - `ETL_PI01.ipynb`: Data cleaning, transformation, and loading.  
-  - `EDA_PI01.ipynb`: Exploratory Data Analysis to understand patterns and trends.  
-  - `ML_modelo.ipynb`: Development and training of the recommendation model.  
-- **`main.py`**: FastAPI implementation for data querying and recommendations.  
-- **`requirements.txt`**: List of project dependencies.  
+Un sistema inteligente que recomienda películas basado en análisis de reseñas utilizando **Procesamiento de Lenguaje Natural** y algoritmos de similitud. ¡Descubre tu próxima película favorita!
 
-## 🔄 Process  
+🌐 **API en vivo**: [Desplegado en Render](https://sistema-recomendacion-peliculas.onrender.com)
 
-### 🛠️ ETL (Extract, Transform, Load)  
+## 🚀 Características Destacadas
 
-- **Flattened nested columns** and applied transformations according to the requirements.  
-- Merged relevant data from the provided CSV files, removing unnecessary columns.  
-- Standardized **credit dataset** fields and filtered out irrelevant data.  
+- **Recomendaciones Personalizadas**: Obtén sugerencias basadas en similitud semántica de reseñas.
 
-### 📊 Exploratory Data Analysis (EDA)  
+- **Pipeline de Datos Integrado**: Extracción, limpieza y transformación automatizada de datos de TMDb.
 
-- Examined dataset attributes (info, data types, null values).  
-- **Filtered movies** based on runtime (50-330 mins) to exclude miniseries and anomalies.  
-- **Analyzed genres & languages**, keeping only the **top 10 most frequent languages**.  
-- **Removed movies released before 1980** to focus on modern audience preferences and optimize resources.  
-- **Excluded non-released movies** and movies with **poor ROI calculations**.  
-- **Word cloud analysis** on highly rated movies (**score ≥ 7**) to identify common themes.  
-- **Finalized with feature selection** and exported the cleaned dataset as a Parquet file.  
+- **Visualizaciones Interesantes**: Insights sobre géneros, puntuaciones y tendencias cinematográficas.
 
-### 🎯 Recommendation Model  
+- **API RESTful**: Interfaz moderna con documentación Swagger integrada.
 
-The recommendation system is based on **cosine similarity** between categorical attributes like **movie genres, titles, and overview keywords**. After tokenization, the model suggests **5 similar movies** based on content similarity.  
+## 🧠 Arquitectura del Sistema
 
-## 🚀 API  
+```mermaid
 
-The **FastAPI**-powered **RESTful API** exposes endpoints for querying movie data and generating recommendations.  
+graph LR
 
-🔗 **Live API on Render:** [MVP Recommendation System](https://mvp-sistema-recomendacion.onrender.com/docs)  
+A[TMDb API] --> B[Extracción de Datos]
 
-### 🔌 API Endpoints  
+B --> C[Limpieza y NLP]
 
-- **`/cantidad_filmaciones_mes/{mes}`** – Returns the number of movies released in a given month (in Spanish).  
-- **`/cantidad_filmaciones_dia/{dia}`** – Returns the number of movies released on a specific weekday (in Spanish).  
-- **`/score_titulo/{titulo}`** – Retrieves the movie title, release year, and score.  
-- **`/votos_titulo/{titulo}`** – Returns the number of votes and average rating (only if votes > 2000).  
-- **`/get_actor/{nombre_actor}`** – Fetches an actor’s total movies, average ROI, and success score.  
-- **`/get_director/{nombre_director}`** – Retrieves a director’s movies, release dates, ROI, costs, and revenues.  
-- **`/recomendacion/{titulo}`** – Recommends **5 similar movies** based on the input movie title.  
+C --> D[Modelo de Similitud]
 
-## 👩‍💻 Author  
+D --> E[API FastAPI]
 
-📧 **Email:** juliacgastellu@gmail.com  
-💼 **LinkedIn:** [Julia Gastellu](https://www.linkedin.com/in/julia-gastellu/)  
+E --> F[Recomendaciones en Tiempo Real]
 
-## 🛠️ Technologies Used  
+```
 
-<div align="left">
-  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg" height="40" alt="Python" />
-  <img width="12" />
-  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/pandas/pandas-original.svg" height="40" alt="Pandas" />
-  <img width="12" />
-  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/fastapi/fastapi-original.svg" height="40" alt="FastAPI" />
-  <img width="12" />
-  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg" height="40" alt="GitHub" />
-  <img width="12" />
-  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/git/git-original.svg" height="40" alt="git logo"  />
-  <img width="12" />
-  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/vscode/vscode-original.svg" height="40" alt="vscode logo"  />
-</div>
+## 📦 Tecnologías Clave
 
-###
+| Categoría          | Herramientas                                                                 |
 
-<p align="left"></p>
+|---------------------|------------------------------------------------------------------------------|
 
-###
+| **Lenguaje**        | Python 3.11                                                                 |
+
+| **API Framework**   | FastAPI, Uvicorn                                                            |
+
+| **NLP**             | spaCy, NLTK, TF-IDF                                                         |
+
+| **Data Science**    | Pandas, Scikit-learn, NumPy                                                 |
+
+| **Visualización**   | Matplotlib, Seaborn, WordCloud                                              |
+
+| **Despliegue**      | Render, Docker                                                              |
+
+## 🛠️ Instalación Rápida
+
+1. **Clonar repositorio**
+
+```bash
+
+git clone https://github.com/JuliaGastellu/MVP_sistema_recomendacion.git
+
+cd sistema-recomendacion-peliculas
+
+```
+
+2. **Configurar entorno virtual**
+
+```bash
+
+python -m venv .venv
+
+source .venv/bin/activate  # Linux/Mac
+
+.venv\Scripts\activate     # Windows
+
+```
+
+3. **Instalar dependencias**
+
+```bash
+
+pip install -r requirements.txt
+
+python -m spacy download es_core_news_sm
+
+```
+
+4. **Configurar API Key**
+
+```bash
+
+echo "TMDB_API_KEY=tu_clave_aqui" > .env
+
+```
+
+## 💻 Uso del Sistema
+
+### ▶️ Iniciar la API
+
+```bash
+
+uvicorn app:app --reload
+
+```
+
+Visita la documentación interactiva: http://localhost:8000/docs
+
+### 🔍 Ejemplo de Consulta
+
+```python
+
+import requests
+
+response = requests.get("http://localhost:8000/recomendacion/Inception")
+
+print(response.json())
+
+```
+
+**Salida Esperada:**
+
+```json
+
+{
+
+"pelicula_consultada": "Inception",
+
+"recomendaciones": [
+
+"The Matrix",
+
+"Interstellar",
+
+"The Prestige",
+
+"Memento",
+
+"Tenet"
+
+]
+
+}
+
+```
+
+## 📊 Insights Visuales
+
+![Distribución de Géneros](docs/genre_distribution.png)
+
+*Análisis de popularidad de géneros cinematográficos*
+
+![Word Cloud](docs/wordcloud.png)
+
+*Términos más frecuentes en reseñas de películas*
+
+## 🤝 Cómo Contribuir
+
+1. Haz fork del proyecto
+
+2. Crea tu feature branch (`git checkout -b feature/nueva-funcionalidad`)
+
+3. Realiza tus cambios
+
+4. Haz commit (`git commit -am 'Add nueva funcionalidad'`)
+
+5. Push a la rama (`git push origin feature/nueva-funcionalidad`)
+
+6. Abre un Pull Request
+
+
+## ✒️ Autora
+
+**Julia Gastellu**
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-0A66C2?style=flat&logo=linkedin&logoColor=white)](https://linkedin.com/in/juliagastellu)
+
+---
+
+⭐ ¿Te gusta el proyecto? Dale una estrella en GitHub para apoyar su desarrollo!
+
+```
+
+
