@@ -8,6 +8,6 @@ scikit-learn==1.2.2
 nltk==3.8.1
 torch>=2.4.0,<2.5.0
 torchvision>=0.19.0,<0.20.0
-transformers==4.50.1
+huggingface_hub==0.14.1
 sentence-transformers==2.1.0
-huggingface_hub>=0.26.0,<1.0.0
+transformers==4.50.1
