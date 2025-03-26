@@ -135,7 +135,7 @@ print(response.json())
 
 **Salida Esperada:**
 
-![Salida Esperada:](images/endpoint1.png)
+![Salida Esperada:](proyecto/images/endpoint1.png)
 
 #### Recomendación basada en géneros (Sistema de recomendación por géneros)
 
@@ -148,7 +148,7 @@ print(response.json())
 
 **Salida Esperada:**
 
-![Salida Esperada:](images/endpoint2.png)
+![Salida Esperada:](proyecto/images/endpoint2.png)
 
 
 ## 🤝 Cómo Contribuir
