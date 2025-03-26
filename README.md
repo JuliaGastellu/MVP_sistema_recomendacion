@@ -13,7 +13,7 @@ Un sistema inteligente que recomienda películas basado en análisis de reseñas
 ## 🚀 Características Destacadas
 
 - **Recomendaciones Personalizadas**: Obtén sugerencias basadas en similitud semántica de reseñas y géneros.
-- **Pipeline de Datos Integrado**: Extracción, limpieza y transformación automatizada de datos de TMDb.
+- **Pipeline de Datos Integrado**: Extracción, limpieza y transformación de datos directamente desde la api de TMDb.
 - **Visualizaciones Interesantes**: Insights sobre géneros, puntuaciones y tendencias cinematográficas.
 - **API RESTful**: Interfaz moderna con documentación Swagger integrada.
 
