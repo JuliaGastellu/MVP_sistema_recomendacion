@@ -68,3 +68,9 @@ async def recomendacion_genero(titulo: str, top_n: int = 5):
     recomendaciones = df_filtrado.sort_values(by="similarity", ascending=False).head(top_n)[["titulo", "generos", "puntuacion"]]
     return recomendaciones.to_dict(orient='records')
 
+import os
+import uvicorn
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 10000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
