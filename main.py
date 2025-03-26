@@ -46,15 +46,19 @@ app = FastAPI(
 )
 
 @app.get('/recomendacion/{titulo}', name="Sistema de recomendación por reseñas")
-async def recomendacion(titulo: str):
+async def recomendacion(titulo: str, top_n: int = 5):
     """Devuelve las 10 películas más similares basadas en reseñas."""
     titulo = titulo.strip().lower()
     if titulo not in indices:
         raise HTTPException(status_code=404, detail="Película no encontrada")
+    
     idx = indices[titulo]
-    sim_scores = sorted(list(enumerate(cosine_sim[idx])), key=lambda x: x[1], reverse=True)[1:11]
+    sim_scores = sorted(list(enumerate(cosine_sim[idx])), key=lambda x: x[1], reverse=True)[1:top_n+1]
     movie_indices = [i[0] for i in sim_scores]
-    return {"recomendaciones": df_filtrado['titulo'].iloc[movie_indices].tolist()}
+    
+    # Devuelve las recomendaciones con título, sinopsis y puntuación
+    recomendaciones = df_filtrado.iloc[movie_indices][["titulo", "sinopsis", "puntuacion"]]
+    return recomendaciones.to_dict(orient='records')
 
 @app.get('/recomendacion_genero/{titulo}', name="Sistema de recomendación por géneros")
 async def recomendacion_genero(titulo: str, top_n: int = 5):
@@ -62,12 +66,20 @@ async def recomendacion_genero(titulo: str, top_n: int = 5):
     movie_row = df_filtrado[df_filtrado['titulo'].str.contains(titulo, case=False, na=False)]
     if movie_row.empty:
         raise HTTPException(status_code=404, detail="Película no encontrada")
+    
     movie_vector = movie_row.iloc[0]["vector"].reshape(1, -1)
     similarities = cosine_similarity(movie_vector, np.stack(df_filtrado["vector"].values))
     df_filtrado["similarity"] = similarities[0]
-    recomendaciones = df_filtrado.sort_values(by="similarity", ascending=False).head(top_n)[["titulo", "generos", "puntuacion"]]
+    
+    # Devuelve las recomendaciones con título, géneros, sinopsis y puntuación
+    recomendaciones = df_filtrado.sort_values(by="similarity", ascending=False).head(top_n)[["titulo", "generos", "sinopsis", "puntuacion"]]
+    
+    # Asegurarse de que los géneros sean cadenas de texto antes de devolverlas
+    recomendaciones["generos"] = recomendaciones["generos"].apply(lambda x: ", ".join(x) if isinstance(x, list) else "")
+    
     return recomendaciones.to_dict(orient='records')
 
+# Ejecutar la API
 import os
 import uvicorn
 
