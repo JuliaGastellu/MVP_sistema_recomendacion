@@ -77,24 +77,26 @@ Ambos modelos se exponen mediante endpoints independientes dentro de la API, per
 ## 🏗️ Estructura del Proyecto
 
 ```
-proyecto/
-├── app/
-│   ├── api/
-│   │   ├── routes.py         # Endpoints de la API
-│   ├── core/
-│   │   ├── config.py         # Configuración centralizada
+├── proyecto/
+│   ├── data/
+│   │   ├── movies.parquet
+│   │   └── movies_filtrado.parquet
+│   ├── images/
+│   │   ├── endpoint1.png
+│   │   └── endpoint2.png
 │   ├── models/
-│   │   ├── recommendation.py # Lógica de recomendación
-│   ├── utils/
-│   │   └── data_processing.py # Utilidades de procesamiento
-│   └── main.py               # Punto de entrada de la aplicación
-├── data/
-│   └── movies_filtrado.parquet # Datos de películas
-├── notebooks/                # Jupyter notebooks para análisis
-├── tests/                    # Tests unitarios y de integración
-├── .env                      # Variables de entorno
-├── requirements.txt          # Dependencias del proyecto
-└── README.md                 # Documentación principal
+│   │   ├── hybrid_model.py
+│   │   ├── sentence_transformer_model.py
+│   │   └── tfidf_model.py
+│   └── notebooks/
+│       ├── EDA.ipynb
+│       ├── ETL.ipynb
+│       ├── TF-IDF-Cosine-Sim_model.ipynb
+│       └── all-MiniLM-L6-v2_model.ipynb
+├── README.md
+├── main.py
+├── requirements.txt
+└── .gitignore
 ```
 
 ## 🛠️ Instalación Rápida
