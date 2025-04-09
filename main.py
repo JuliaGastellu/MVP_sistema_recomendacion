@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Query, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel as PydanticBaseModel
 from typing import List, Dict, Any, Optional
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -15,6 +15,7 @@ import logging
 from datetime import datetime, timedelta
 from functools import lru_cache
 import re
+import difflib
 
 # Configurar logging
 logging.basicConfig(
@@ -23,9 +24,22 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Descargar recursos de NLTK
+try:
+    nltk.download('punkt', quiet=True)
+    nltk.download('stopwords', quiet=True)
+    nltk.download('wordnet', quiet=True)
+    nltk.download('omw-1.4', quiet=True)
+except Exception as e:
+    logger.error(f"Error al descargar recursos NLTK: {str(e)}")
+
 # Descargar stopwords en español
-nltk.download('stopwords')
-stopwords_es = stopwords.words('spanish')
+try:
+    nltk.download('stopwords')
+    stopwords_es = stopwords.words('spanish')
+except Exception as e:
+    logger.error(f"Error al descargar stopwords: {str(e)}")
+    stopwords_es = []
 
 # Obtener la ruta base del proyecto
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -36,94 +50,122 @@ if not os.path.exists(data_path):
     logger.error(f"Archivo de datos no encontrado en: {data_path}")
     raise FileNotFoundError(f"Archivo de datos no encontrado en: {data_path}")
 
-# Modelos Pydantic para validación
-class MovieRecommendation(BaseModel):
-    titulo: str
-    sinopsis: str
-    puntuacion: float
+# Cargar datos una sola vez al inicio
+try:
+    df_filtrado = pd.read_parquet(data_path)
+    logger.info(f"Datos cargados exitosamente. Total de películas: {len(df_filtrado)}")
+    
+    # Asegurarse de que los géneros sean listas
+    if 'generos' in df_filtrado.columns:
+        df_filtrado['generos'] = df_filtrado['generos'].apply(
+            lambda x: x.split(',') if isinstance(x, str) else []
+        )
+except Exception as e:
+    logger.error(f"Error al cargar los datos: {str(e)}")
+    raise
 
-class GenreRecommendation(MovieRecommendation):
-    generos: str
+# Configurar el modelo de recomendación
+try:
+    model = SentenceTransformer('all-MiniLM-L6-v2')
+    logger.info("Modelo SentenceTransformer cargado exitosamente")
+except Exception as e:
+    logger.error(f"Error al cargar el modelo: {str(e)}")
+    raise
 
-class ErrorResponse(BaseModel):
-    detail: str
-    timestamp: str = Field(default_factory=lambda: datetime.now().isoformat())
-
-# Caché para recomendaciones
+# Cache para recomendaciones
 recommendation_cache = {}
 CACHE_TTL = 3600  # 1 hora en segundos
 
-def clean_title(title: str) -> str:
-    """Limpia el título para búsqueda."""
-    return re.sub(r'[^\w\s]', '', title.lower().strip())
+# Función para limpiar títulos
+def clean_title(title):
+    try:
+        return title.lower().strip()
+    except:
+        return ""
 
-def find_similar_titles(title: str, df: pd.DataFrame, threshold: float = 0.8) -> List[str]:
-    """Encuentra títulos similares usando similitud de texto."""
-    clean_query = clean_title(title)
-    titles = df['titulo'].apply(clean_title).tolist()
-    
-    # Crear vectorizador para títulos
-    title_vectorizer = TfidfVectorizer(analyzer='char', ngram_range=(2,3))
-    title_matrix = title_vectorizer.fit_transform(titles + [clean_query])
-    
-    # Calcular similitud
-    similarities = cosine_similarity(title_matrix[-1:], title_matrix[:-1])[0]
-    
-    # Encontrar títulos similares
-    similar_indices = np.where(similarities >= threshold)[0]
-    return [df.iloc[i]['titulo'] for i in similar_indices]
+# Función para encontrar títulos similares
+def find_similar_titles(query, df, threshold=0.8):
+    try:
+        query = clean_title(query)
+        if not query:
+            return None
+        
+        # Buscar coincidencia exacta primero
+        exact_match = df[df['titulo'].str.lower() == query]
+        if not exact_match.empty:
+            return exact_match.iloc[0]['titulo']
+        
+        # Si no hay coincidencia exacta, buscar similitud
+        titles = df['titulo'].str.lower().tolist()
+        similarities = [difflib.SequenceMatcher(None, query, title).ratio() for title in titles]
+        max_similarity = max(similarities)
+        
+        if max_similarity >= threshold:
+            return df.iloc[similarities.index(max_similarity)]['titulo']
+        return None
+    except Exception as e:
+        logger.error(f"Error en find_similar_titles: {str(e)}")
+        return None
 
+# Función para generar recomendaciones con caché
 @lru_cache(maxsize=100)
-def get_cached_recommendations(cache_key: str, recommendation_type: str):
-    """Obtiene recomendaciones del caché si están disponibles y no han expirado."""
-    if cache_key in recommendation_cache:
-        data, timestamp = recommendation_cache[cache_key]
-        if datetime.now() - timestamp < timedelta(seconds=CACHE_TTL):
-            logger.info(f"Recomendación encontrada en caché: {cache_key}")
-            return data
-    return None
+def get_recommendations(title, limit=5):
+    try:
+        if title in recommendation_cache:
+            return recommendation_cache[title]
+        
+        similar_title = find_similar_titles(title, df_filtrado)
+        if not similar_title:
+            return None
+        
+        movie_data = df_filtrado[df_filtrado['titulo'] == similar_title].iloc[0]
+        genres = movie_data['generos']
+        
+        # Filtrar por géneros y calcular similitud
+        genre_matches = df_filtrado[df_filtrado['generos'].apply(lambda x: any(g in genres for g in x))]
+        if len(genre_matches) > 1:
+            genre_matches = genre_matches[genre_matches['titulo'] != similar_title]
+        
+        recommendations = genre_matches.head(limit).to_dict('records')
+        recommendation_cache[title] = recommendations
+        return recommendations
+    except Exception as e:
+        logger.error(f"Error en get_recommendations: {str(e)}")
+        return None
 
-def cache_recommendation(cache_key: str, data: List[Dict[str, Any]]):
-    """Almacena recomendaciones en el caché."""
-    recommendation_cache[cache_key] = (data, datetime.now())
-    logger.info(f"Recomendación almacenada en caché: {cache_key}")
+# Función para manejar excepciones
+async def handle_exception(func):
+    try:
+        return await func()
+    except Exception as e:
+        logger.error(f"Error en {func.__name__}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error interno del servidor: {str(e)}"
+        )
 
-try:
-    # Cargar el DataFrame filtrado
-    df_filtrado = pd.read_parquet(data_path)
-    df_filtrado['reseñas'] = df_filtrado['reseñas'].fillna('')
-    
-    # Vectorizador TF-IDF en español con stopwords
-    tfidf = TfidfVectorizer(stop_words=stopwords_es)
-    tfidf_matrix = tfidf.fit_transform(df_filtrado['reseñas'])
-    
-    # Calcular similitud de coseno
-    cosine_sim = cosine_similarity(tfidf_matrix, tfidf_matrix)
-    
-    # Crear un diccionario de índices de películas
-    indices = pd.Series(df_filtrado.index, index=df_filtrado['titulo'].str.lower()).drop_duplicates()
-    
-    # Cargar el modelo SentenceTransformer para embeddings de géneros
-    model = SentenceTransformer('all-MiniLM-L6-v2')
-    
-    def get_movie_vector(genres, model):
-        genres_text = " ".join(genres)
-        return model.encode([genres_text])[0]
-    
-    # Preprocesar los géneros y calcular los vectores de género
-    df_filtrado["generos"] = df_filtrado["generos"].apply(lambda x: x.split(",") if isinstance(x, str) else [])
-    df_filtrado["vector"] = df_filtrado["generos"].apply(lambda x: get_movie_vector(x, model))
-    
-    logger.info("Datos y modelos cargados correctamente")
-except Exception as e:
-    logger.error(f"Error al cargar datos o modelos: {str(e)}")
-    raise
+# Modelos Pydantic
+class MovieRecommendation(PydanticBaseModel):
+    titulo: str
+    sinopsis: str
+    puntuacion: float
+    generos: List[str]
 
-# Crear la instancia de FastAPI
+class RecommendationResponse(PydanticBaseModel):
+    error: bool
+    mensaje: str
+    peliculas: List[MovieRecommendation]
+
+class ErrorResponse(PydanticBaseModel):
+    error: bool
+    mensaje: str
+    detalle: Optional[str] = None
+
+# Aplicación FastAPI
 app = FastAPI(
     title="Sistema de Recomendación de Películas",
-    description="Recomendaciones basadas en reseñas y géneros.",
-    docs_url="/docs"
+    description="API para recomendar películas basada en similitud de reseñas y géneros",
+    version="1.0.0"
 )
 
 # Configurar CORS
@@ -142,164 +184,110 @@ async def global_exception_handler(request, exc):
     return JSONResponse(
         status_code=500,
         content=ErrorResponse(
-            detail="Error interno del servidor. Por favor, inténtelo de nuevo más tarde."
+            error=True,
+            mensaje="Error interno del servidor. Por favor, inténtelo de nuevo más tarde.",
+            detalle=str(exc)
         ).dict()
     )
 
-@app.get('/recomendacion/{titulo}', response_model=List[MovieRecommendation])
-async def recomendacion(
-    titulo: str,
-    top_n: int = Query(5, ge=1, le=20, description="Número de recomendaciones a devolver")
-):
-    """Devuelve las películas más similares basadas en reseñas."""
-    try:
-        # Verificar caché
-        cache_key = f"review_{titulo}_{top_n}"
-        cached_result = get_cached_recommendations(cache_key, "review")
-        if cached_result:
-            return cached_result
-        
-        titulo = titulo.strip().lower()
-        
-        # Buscar títulos similares si no se encuentra exactamente
-        if titulo not in indices:
-            similar_titles = find_similar_titles(titulo, df_filtrado)
-            if similar_titles:
-                raise HTTPException(
-                    status_code=404,
-                    detail=f"Película no encontrada. ¿Quizás quisiste decir: {', '.join(similar_titles[:3])}?"
-                )
-            else:
-                raise HTTPException(status_code=404, detail="Película no encontrada")
-        
-        idx = indices[titulo]
-        sim_scores = sorted(list(enumerate(cosine_sim[idx])), key=lambda x: x[1], reverse=True)[1:top_n+1]
-        movie_indices = [i[0] for i in sim_scores]
-        
-        recomendaciones = df_filtrado.iloc[movie_indices][["titulo", "sinopsis", "puntuacion"]]
-        result = recomendaciones.to_dict(orient='records')
-        
-        # Almacenar en caché
-        cache_recommendation(cache_key, result)
-        
-        return result
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error en recomendacion: {str(e)}")
-        raise HTTPException(status_code=500, detail="Error interno del servidor")
+@app.get("/")
+async def root():
+    return {
+        "mensaje": "Bienvenido al Sistema de Recomendación de Películas",
+        "endpoints_disponibles": [
+            "/recomendacion/{titulo}",
+            "/recomendacion_genero/{titulo}",
+            "/buscar/{query}"
+        ]
+    }
 
-@app.get('/recomendacion_genero/{titulo}', response_model=List[GenreRecommendation])
-async def recomendacion_genero(
-    titulo: str,
-    top_n: int = Query(5, ge=1, le=20, description="Número de recomendaciones a devolver")
-):
-    """Devuelve películas similares basadas en los géneros."""
+@app.get("/recomendacion/{titulo}", response_model=RecommendationResponse)
+async def recomendar_peliculas(titulo: str):
     try:
-        # Verificar caché
-        cache_key = f"genre_{titulo}_{top_n}"
-        cached_result = get_cached_recommendations(cache_key, "genre")
-        if cached_result:
-            return cached_result
+        recommendations = get_recommendations(titulo)
+        if not recommendations:
+            return RecommendationResponse(
+                error=True,
+                mensaje=f"No se encontraron recomendaciones para '{titulo}'",
+                peliculas=[]
+            )
         
-        # Buscar película
-        movie_row = df_filtrado[df_filtrado['titulo'].str.contains(titulo, case=False, na=False)]
-        if movie_row.empty:
-            similar_titles = find_similar_titles(titulo, df_filtrado)
-            if similar_titles:
-                raise HTTPException(
-                    status_code=404,
-                    detail=f"Película no encontrada. ¿Quizás quisiste decir: {', '.join(similar_titles[:3])}?"
-                )
-            else:
-                raise HTTPException(status_code=404, detail="Película no encontrada")
-        
-        movie_vector = movie_row.iloc[0]["vector"].reshape(1, -1)
-        similarities = cosine_similarity(movie_vector, np.stack(df_filtrado["vector"].values))
-        df_filtrado["similarity"] = similarities[0]
-        
-        recomendaciones = df_filtrado.sort_values(by="similarity", ascending=False).head(top_n)[["titulo", "generos", "sinopsis", "puntuacion"]]
-        recomendaciones["generos"] = recomendaciones["generos"].apply(lambda x: ", ".join(x) if isinstance(x, list) else "")
-        
-        result = recomendaciones.to_dict(orient='records')
-        
-        # Almacenar en caché
-        cache_recommendation(cache_key, result)
-        
-        return result
-    except HTTPException:
-        raise
+        return RecommendationResponse(
+            error=False,
+            mensaje=f"Recomendaciones para '{titulo}'",
+            peliculas=recommendations
+        )
     except Exception as e:
-        logger.error(f"Error en recomendacion_genero: {str(e)}")
-        raise HTTPException(status_code=500, detail="Error interno del servidor")
+        logger.error(f"Error en recomendar_peliculas: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al generar recomendaciones: {str(e)}"
+        )
 
-@app.get('/buscar/{query}')
+@app.get("/recomendacion_genero/{titulo}", response_model=RecommendationResponse)
+async def recomendar_por_genero(titulo: str):
+    try:
+        similar_title = find_similar_titles(titulo, df_filtrado)
+        if not similar_title:
+            return RecommendationResponse(
+                error=True,
+                mensaje=f"No se encontró la película '{titulo}'",
+                peliculas=[]
+            )
+        
+        movie_data = df_filtrado[df_filtrado['titulo'] == similar_title].iloc[0]
+        genres = movie_data['generos']
+        
+        recommendations = df_filtrado[
+            df_filtrado['generos'].apply(lambda x: any(g in genres for g in x)) &
+            (df_filtrado['titulo'] != similar_title)
+        ].head(5).to_dict('records')
+        
+        return RecommendationResponse(
+            error=False,
+            mensaje=f"Recomendaciones por género para '{similar_title}'",
+            peliculas=recommendations
+        )
+    except Exception as e:
+        logger.error(f"Error en recomendar_por_genero: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al generar recomendaciones por género: {str(e)}"
+        )
+
+@app.get("/buscar/{query}")
 async def buscar_peliculas(
     query: str,
-    limit: int = Query(5, ge=1, le=20, description="Número máximo de resultados")
+    limit: int = Query(5, ge=1, le=20)
 ):
-    """
-    Busca películas por título o descripción.
-    """
     try:
-        # Verificar que el DataFrame esté cargado correctamente
-        if df_filtrado is None or df_filtrado.empty:
-            logger.error("El DataFrame está vacío o no se ha cargado correctamente")
-            return {
-                "error": False,
-                "mensaje": "No hay datos disponibles para la búsqueda",
-                "resultados": []
-            }
-        
-        # Imprimir información de depuración sobre el DataFrame
-        logger.info(f"Columnas disponibles: {df_filtrado.columns.tolist()}")
-        logger.info(f"Total de películas en el DataFrame: {len(df_filtrado)}")
-        
-        # Limpiar la consulta
         query = query.lower().strip()
         
-        # Buscar en títulos
+        # Búsqueda en títulos
         titulos_match = df_filtrado[df_filtrado['titulo'].str.lower().str.contains(query, na=False)]
         
-        # Buscar en sinopsis
+        # Búsqueda en sinopsis
         sinopsis_match = df_filtrado[df_filtrado['sinopsis'].str.lower().str.contains(query, na=False)]
         
-        # Buscar en géneros
+        # Búsqueda en géneros
         generos_match = df_filtrado[df_filtrado['generos'].apply(lambda x: any(query in g.lower() for g in x) if isinstance(x, list) else False)]
         
-        # Combinar resultados
+        # Combinar y ordenar resultados
         resultados = pd.concat([titulos_match, sinopsis_match, generos_match]).drop_duplicates()
-        
-        # Ordenar por puntuación
-        resultados = resultados.sort_values('puntuacion', ascending=False)
-        
-        # Limitar resultados
-        resultados = resultados.head(limit)
-        
-        # Formatear resultados
-        peliculas = []
-        for _, pelicula in resultados.iterrows():
-            peliculas.append({
-                "titulo": pelicula['titulo'],
-                "sinopsis": pelicula['sinopsis'],
-                "puntuacion": float(pelicula['puntuacion']),
-                "generos": ", ".join(pelicula['generos']) if isinstance(pelicula['generos'], list) else pelicula['generos']
-            })
+        resultados = resultados.sort_values('puntuacion', ascending=False).head(limit)
         
         return {
             "error": False,
             "mensaje": "Búsqueda completada exitosamente",
-            "total_resultados": len(peliculas),
-            "resultados": peliculas
+            "total_resultados": len(resultados),
+            "resultados": resultados.to_dict('records')
         }
-        
     except Exception as e:
-        logger.error(f"Error en la búsqueda: {str(e)}")
-        return {
-            "error": True,
-            "mensaje": f"Error en la búsqueda: {str(e)}",
-            "resultados": []
-        }
+        logger.error(f"Error en buscar_peliculas: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error en la búsqueda: {str(e)}"
+        )
 
 if __name__ == "__main__":
     import uvicorn
