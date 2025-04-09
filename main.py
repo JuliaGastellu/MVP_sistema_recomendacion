@@ -205,7 +205,8 @@ async def root():
         "endpoints_disponibles": [
             "/recomendacion/{titulo}",
             "/recomendacion_genero/{titulo}",
-            "/buscar/{query}"
+            "/buscar/{query}",
+            "/peliculas/filtradas"
         ]
     }
 
@@ -263,86 +264,69 @@ async def recomendar_por_genero(titulo: str):
             detail=f"Error al generar recomendaciones por género: {str(e)}"
         )
 
-@app.get("/buscar/{query}")
-async def buscar_peliculas(
-    query: str,
-    limit: int = Query(5, ge=1, le=20)
+@app.get("/peliculas/filtradas")
+async def filtrar_peliculas(
+    genero: str = Query(None, description="Género de la película"),
+    puntuacion_min: float = Query(0.0, ge=0.0, le=10.0, description="Puntuación mínima"),
+    puntuacion_max: float = Query(10.0, ge=0.0, le=10.0, description="Puntuación máxima"),
+    limit: int = Query(10, ge=1, le=50, description="Número máximo de resultados")
 ):
+    """
+    Filtra películas por género y rango de puntuación.
+    """
     try:
         # Verificar que el DataFrame esté cargado
         if df_filtrado is None or df_filtrado.empty:
             logger.error("El DataFrame está vacío o no se ha cargado correctamente")
             return {
                 "error": True,
-                "mensaje": "No hay datos disponibles para la búsqueda",
+                "mensaje": "No hay datos disponibles para el filtrado",
                 "total_resultados": 0,
                 "resultados": []
             }
         
-        # Limpiar la consulta
-        query = query.lower().strip()
-        if not query:
-            return {
-                "error": True,
-                "mensaje": "La consulta no puede estar vacía",
-                "total_resultados": 0,
-                "resultados": []
-            }
+        # Filtrar por puntuación
+        df_filtrado_puntuacion = df_filtrado[
+            (df_filtrado['puntuacion'] >= puntuacion_min) & 
+            (df_filtrado['puntuacion'] <= puntuacion_max)
+        ]
         
-        # Búsqueda en títulos (más rápida)
-        titulos_match = df_filtrado[df_filtrado['titulo'].str.lower().str.contains(query, na=False)]
-        
-        # Si encontramos suficientes resultados en títulos, no buscamos en otros campos
-        if len(titulos_match) >= limit:
-            resultados = titulos_match.head(limit)
+        # Si se especifica un género, filtrar por él
+        if genero:
+            genero = genero.lower().strip()
+            df_filtrado_final = df_filtrado_puntuacion[
+                df_filtrado_puntuacion['generos'].apply(
+                    lambda x: any(g.lower().strip() == genero for g in x)
+                )
+            ]
         else:
-            # Búsqueda en sinopsis (solo si es necesario)
-            sinopsis_match = df_filtrado[df_filtrado['sinopsis'].str.lower().str.contains(query, na=False)]
-            
-            # Búsqueda en géneros (solo si es necesario)
-            # Usar una función más segura para buscar en géneros
-            def buscar_en_generos(generos):
-                if not isinstance(generos, list):
-                    return False
-                return any(query in str(g).lower() for g in generos)
-            
-            generos_match = df_filtrado[df_filtrado['generos'].apply(buscar_en_generos)]
-            
-            # Combinar resultados
-            resultados = pd.concat([titulos_match, sinopsis_match, generos_match]).drop_duplicates()
+            df_filtrado_final = df_filtrado_puntuacion
         
-        # Ordenar y limitar resultados
-        resultados = resultados.sort_values('puntuacion', ascending=False).head(limit)
+        # Ordenar por puntuación y limitar resultados
+        resultados = df_filtrado_final.sort_values('puntuacion', ascending=False).head(limit)
         
-        # Convertir a diccionario de manera eficiente y segura
+        # Convertir a diccionario
         resultados_dict = []
         for _, row in resultados.iterrows():
-            # Asegurarse de que los géneros sean una lista de strings
-            generos = row['generos']
-            if not isinstance(generos, list):
-                generos = [str(generos)]
-            
-            # Asegurarse de que todos los valores sean serializables
             pelicula = {
                 "titulo": str(row['titulo']),
                 "sinopsis": str(row['sinopsis']),
                 "puntuacion": float(row['puntuacion']),
-                "generos": [str(g) for g in generos]
+                "generos": [str(g) for g in row['generos']]
             }
             resultados_dict.append(pelicula)
         
         return {
             "error": False,
-            "mensaje": "Búsqueda completada exitosamente",
+            "mensaje": "Filtrado completado exitosamente",
             "total_resultados": len(resultados_dict),
             "resultados": resultados_dict
         }
     except Exception as e:
-        logger.error(f"Error en buscar_peliculas: {str(e)}")
-        # Devolver un error 500 con mensaje claro en lugar de lanzar excepción
+        logger.error(f"Error en filtrar_peliculas: {str(e)}")
         return {
             "error": True,
-            "mensaje": "Error en la búsqueda",
+            "mensaje": "Error en el filtrado",
             "detalle": str(e),
             "total_resultados": 0,
             "resultados": []
