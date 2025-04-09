@@ -7,6 +7,7 @@ import logging
 import sys
 import os
 import nltk
+import gc
 
 # Configurar logging
 logging.basicConfig(
@@ -17,8 +18,8 @@ logger = logging.getLogger(__name__)
 
 # Descargar recursos necesarios de NLTK
 try:
-    nltk.download('stopwords')
-    nltk.download('punkt')
+    nltk.download('stopwords', quiet=True)
+    nltk.download('punkt', quiet=True)
     logger.info("Recursos NLTK descargados correctamente")
 except Exception as e:
     logger.error(f"Error al descargar recursos NLTK: {str(e)}")
@@ -56,6 +57,8 @@ class RecommendationResponse(BaseModel):
 try:
     logger.info("Iniciando carga del modelo híbrido...")
     model = load_hybrid_model()
+    # Forzar liberación de memoria
+    gc.collect()
     logger.info("Modelo híbrido cargado correctamente")
 except Exception as e:
     logger.error(f"Error al cargar el modelo híbrido: {str(e)}")
@@ -84,6 +87,8 @@ async def recommend_by_title(
     try:
         logger.info(f"Buscando recomendaciones para título: {title}")
         recommendations = model.recommend_by_title(title, top_n)
+        # Forzar liberación de memoria después de cada recomendación
+        gc.collect()
         return RecommendationResponse(
             error=False,
             recommendations=recommendations
@@ -104,6 +109,7 @@ async def recommend_by_genre(
     try:
         logger.info(f"Buscando recomendaciones para género: {genre}")
         recommendations = model.recommend_by_genre(genre, top_n)
+        gc.collect()
         return RecommendationResponse(
             error=False,
             recommendations=recommendations
@@ -124,6 +130,7 @@ async def recommend_by_year(
     try:
         logger.info(f"Buscando recomendaciones para año: {year}")
         recommendations = model.recommend_by_year(year, top_n)
+        gc.collect()
         return RecommendationResponse(
             error=False,
             recommendations=recommendations
@@ -144,6 +151,7 @@ async def search_movies(
     try:
         logger.info(f"Buscando películas con query: {query}")
         recommendations = model.search_movies(query, limit)
+        gc.collect()
         return RecommendationResponse(
             error=False,
             recommendations=recommendations

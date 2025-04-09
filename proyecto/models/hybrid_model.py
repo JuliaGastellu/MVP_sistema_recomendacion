@@ -19,6 +19,7 @@ import os
 import logging
 from typing import List, Dict, Any, Union, Optional
 from concurrent.futures import ThreadPoolExecutor
+import gc
 
 # Configurar logging
 logging.basicConfig(
@@ -41,7 +42,7 @@ class HybridRecommender:
     Clase para el sistema de recomendación híbrido.
     """
     
-    def __init__(self, data_path=None, model_name='all-MiniLM-L6-v2', tfidf_weight=0.4):
+    def __init__(self, data_path=None, model_name='paraphrase-multilingual-MiniLM-L12-v2', tfidf_weight=0.6):
         """
         Inicializa el recomendador híbrido.
         
@@ -72,7 +73,11 @@ class HybridRecommender:
         """
         try:
             logger.info(f"Cargando datos desde {self.data_path}")
-            self.df = pd.read_parquet(self.data_path)
+            # Cargar solo las columnas necesarias para reducir el uso de memoria
+            self.df = pd.read_parquet(
+                self.data_path,
+                columns=['titulo', 'sinopsis', 'generos', 'año', 'puntuacion']
+            )
             self._preprocess_data()
             logger.info("Datos cargados y preprocesados correctamente")
         except Exception as e:
@@ -84,9 +89,13 @@ class HybridRecommender:
         Carga los modelos de Sentence Transformers y TF-IDF.
         """
         try:
-            # Cargar Sentence Transformer
+            # Cargar Sentence Transformer con configuración optimizada
             logger.info(f"Cargando modelo {self.model_name}")
-            self.st_model = SentenceTransformer(self.model_name)
+            self.st_model = SentenceTransformer(
+                self.model_name,
+                device='cpu',
+                compute_dtype='float32'
+            )
             
             # Asegurarse de que stopwords esté disponible
             try:
@@ -96,13 +105,14 @@ class HybridRecommender:
                 nltk.download('stopwords', quiet=True)
                 spanish_stopwords = stopwords.words('spanish')
             
-            # Configurar TF-IDF
+            # Configurar TF-IDF con parámetros optimizados
             self.tfidf = TfidfVectorizer(
                 stop_words=spanish_stopwords,
-                max_features=10000,
+                max_features=5000,  # Reducido de 10000
                 ngram_range=(1, 2),
                 min_df=2,
-                max_df=0.95
+                max_df=0.95,
+                dtype=np.float32  # Usar float32 en lugar de float64
             )
             
             logger.info("Modelos cargados correctamente")
