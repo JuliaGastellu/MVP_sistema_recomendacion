@@ -1,49 +1,65 @@
-# 🎬 Sistema de Recomendación de Películas
+# 🎬 Sistema de Recomendación de Películas con NLP – Similitud Semántica y TF-IDF en FastAPI
 
-Este proyecto implementa un sistema de recomendación de películas utilizando un modelo híbrido que combina TF-IDF y Sentence Transformers. El sistema proporciona una API REST para obtener recomendaciones basadas en diferentes criterios.
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=FastAPI&logoColor=white)
 
-## ✨ Características
+![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
 
-- 🎯 Recomendaciones basadas en título de película
-- 🎭 Recomendaciones por género
-- 📅 Recomendaciones por año de lanzamiento
-- 🔍 Búsqueda de películas por título o descripción
-- 🤖 Modelo híbrido que combina TF-IDF y Sentence Transformers
-- 🚀 API REST con FastAPI
-- 📚 Documentación automática de la API
-- 🛡️ Manejo de errores robusto
-- 📝 Logging completo
+![TMDb](https://img.shields.io/badge/TMDb-01D277?style=for-the-badge&logo=TheMovieDatabase&logoColor=white)
 
-## 📋 Requisitos
+Un sistema inteligente que recomienda películas basado en análisis de reseñas utilizando **Procesamiento de Lenguaje Natural** y algoritmos de similitud. ¡Descubre tu próxima película favorita!
 
-- Python 3.8 o superior
-- Dependencias listadas en `requirements.txt`
+🌐 **API en vivo**: [Desplegado en Render](https://mvp-sistema-recomendacion.onrender.com/docs)
 
-## 🚀 Instalación
+## 🚀 Características Destacadas
 
-1. Clonar el repositorio:
-```bash
-git clone <url-del-repositorio>
-cd <nombre-del-directorio>
+- **Recomendaciones Personalizadas**: Obtén sugerencias basadas en similitud semántica de reseñas y géneros.
+- **Pipeline de Datos Integrado**: Extracción, limpieza y transformación de datos directamente desde la api de TMDb.
+- **Visualizaciones Interesantes**: Insights sobre géneros, puntuaciones y tendencias cinematográficas.
+- **API RESTful**: Interfaz moderna con documentación Swagger integrada.
+- **Arquitectura Modular**: Estructura de código organizada y mantenible.
+- **Sistema de Logging**: Monitoreo detallado de la aplicación.
+- **Manejo de Errores Robusto**: Respuestas claras y descriptivas ante problemas.
+
+## 🧠 Arquitectura del Sistema
+
+```mermaid
+graph LR
+A[TMDb API] --> B[Extracción de Datos]
+B --> C[Limpieza y NLP]
+C --> D[Modelos de Recomendación]
+D --> E[API FastAPI]
+E --> F[Recomendaciones en Tiempo Real]
 ```
 
-2. Crear y activar un entorno virtual:
-```bash
-python -m venv venv
-source venv/bin/activate  # En Windows: venv\Scripts\activate
-```
+## 📖 Descripción del Modelo
 
-3. Instalar dependencias:
-```bash
-pip install -r requirements.txt
-```
+El sistema implementa dos enfoques complementarios de recomendación basados en **Procesamiento de Lenguaje Natural (NLP)**:
 
-4. Descargar recursos de NLTK:
-```python
-python -c "import nltk; nltk.download('stopwords'); nltk.download('punkt')"
-```
+1. **Modelo basado en TF-IDF y Similitud de Coseno**
+   - Se procesan las reseñas de los usuarios aplicando **TF-IDF** para extraer términos relevantes.
+   - Se calcula la **similitud de coseno** entre películas para identificar aquellas con descripciones y reseñas similares.
+   - Este enfoque es útil cuando se busca encontrar recomendaciones basadas en el contenido textual de las películas.
 
-## 📁 Estructura del Proyecto
+2. **Modelo basado en Embeddings de Sentence Transformers**
+   - Se utiliza el modelo `all-MiniLM-L6-v2` de **Sentence Transformers** para representar semánticamente los géneros de las películas.
+   - Se calculan vectores representativos de los géneros y se compara la similitud utilizando **cosine similarity**.
+   - Este método permite ofrecer recomendaciones basadas en el contexto de los géneros cinematográficos.
+
+Ambos modelos se exponen mediante endpoints independientes dentro de la API, permitiendo a los usuarios seleccionar el tipo de recomendación más adecuado según sus necesidades.
+
+## 📦 Tecnologías Clave
+
+| Categoría          | Herramientas                                                                 |
+|---------------------|------------------------------------------------------------------------------|
+| **Lenguaje**        | Python 3.11                                                                 |
+| **API Framework**   | FastAPI, Uvicorn                                                            |
+| **NLP**             | spaCy, NLTK, TF-IDF, Sentence Transformers                                  |
+| **Data Science**    | Pandas, Scikit-learn, NumPy                                                 |
+| **Visualización**   | Matplotlib, Seaborn, WordCloud                                              |
+| **Despliegue**      | Render                                                           |
+| **Configuración**   | Pydantic Settings, Python-dotenv                                           |
+
+## 🏗️ Estructura del Proyecto
 
 ```
 ├── proyecto/
@@ -68,86 +84,89 @@ python -c "import nltk; nltk.download('stopwords'); nltk.download('punkt')"
 └── .gitignore
 ```
 
-## 💻 Uso
+## 🛠️ Instalación Rápida
 
-1. Iniciar el servidor:
+1. **Clonar repositorio**
 ```bash
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+git clone https://github.com/JuliaGastellu/MVP_sistema_recomendacion.git
+cd MVP_sistema_recomendacion
 ```
 
-2. Acceder a la documentación de la API:
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
-
-## 🔌 Endpoints de la API
-
-### GET /
-- Descripción: Información básica sobre la API
-- Respuesta: Lista de endpoints disponibles
-
-### GET /recommend/title/{title}
-- Descripción: Obtiene recomendaciones basadas en el título de una película
-- Parámetros:
-  - title: Título de la película
-  - top_n: Número de recomendaciones (default: 10)
-
-### GET /recommend/genre/{genre}
-- Descripción: Obtiene recomendaciones basadas en el género
-- Parámetros:
-  - genre: Género de la película
-  - top_n: Número de recomendaciones (default: 10)
-
-### GET /recommend/year/{year}
-- Descripción: Obtiene recomendaciones basadas en el año
-- Parámetros:
-  - year: Año de lanzamiento
-  - top_n: Número de recomendaciones (default: 10)
-
-### GET /search/{query}
-- Descripción: Busca películas por título o descripción
-- Parámetros:
-  - query: Término de búsqueda
-  - limit: Número máximo de resultados (default: 10)
-
-## 📊 Ejemplo de Respuesta
-
-```json
-{
-  "error": false,
-  "recommendations": [
-    {
-      "titulo": "Matrix",
-      "sinopsis": "Un programador descubre...",
-      "puntuacion": 8.7,
-      "generos": ["Ciencia Ficción", "Acción"],
-      "similitud": 0.95
-    }
-  ]
-}
+2. **Configurar entorno virtual**
+```bash
+python -m venv .venv
+source .venv/bin/activate  # Linux/Mac
+.venv\Scripts\activate     # Windows
 ```
 
-## 🤖 Modelo Híbrido
+3. **Instalar dependencias**
+```bash
+pip install -r requirements.txt
+python -m spacy download es_core_news_sm
+```
 
-El sistema utiliza un modelo híbrido que combina:
+4. **Configurar variables de entorno**
+```bash
+# El archivo .env ya está configurado con valores predeterminados
+# Puedes modificarlo según tus necesidades
+```
 
-1. **TF-IDF**:
-   - Vectorización de texto
-   - Ponderación de términos
-   - Stemming para mejor coincidencia
+## 💻 Uso del Sistema
 
-2. **Sentence Transformers**:
-   - Modelo preentrenado 'all-MiniLM-L6-v2'
-   - Captura de significado semántico
-   - Vectores de alta dimensionalidad
+### ▶️ Iniciar la API
+```bash
+uvicorn app.main:app --reload
+```
 
-## 🤝 Contribuir
+### 🔍 Ejemplo de Consulta
 
-1. Fork el repositorio
-2. Crear una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abrir un Pull Request
+#### Recomendaciones basadas en reseñas (TF-IDF + Cosine Similarity)
+```python
+response = requests.get("http://localhost:8000/api/v1/recomendacion/Origen")
+print(response.json())
+```
 
-## 📄 Licencia
+**Salida Esperada:**
+![Salida Esperada:](proyecto/images/endpoint1.png)
 
-Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles. 
+#### Recomendación basada en géneros (Sistema de recomendación por géneros)
+```python
+response = requests.get("http://localhost:8000/api/v1/recomendacion_genero/Origen")
+print(response.json())
+```
+
+**Salida Esperada:**
+![Salida Esperada:](proyecto/images/endpoint2.png)
+
+## 🔍 Monitoreo y Logging
+
+El sistema implementa un sistema de logging detallado que permite:
+
+- Rastrear el flujo de ejecución de la aplicación
+- Identificar errores y excepciones
+- Monitorear el rendimiento de los endpoints
+- Facilitar la depuración de problemas
+
+Los logs se configuran con el siguiente formato:
+```
+%(asctime)s - %(name)s - %(levelname)s - %(message)s
+```
+
+## 🤝 Cómo Contribuir
+
+1. Haz fork del proyecto
+2. Crea tu feature branch (`git checkout -b feature/nueva-funcionalidad`)
+3. Realiza tus cambios
+4. Haz commit (`git commit -am 'Add nueva funcionalidad'`)
+5. Push a la rama (`git push origin feature/nueva-funcionalidad`)
+6. Abre un Pull Request
+
+## ✒️ Autora
+
+**Julia Gastellu**
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-0A66C2?style=flat&logo=linkedin&logoColor=white)](https://linkedin.com/in/juliagastellu)
+
+---
+
+⭐ ¿Te gusta el proyecto? Dale una estrella en GitHub para apoyar su desarrollo! 
