@@ -72,9 +72,7 @@ async def root():
         "version": "1.0.0",
         "endpoints": [
             "/recommend/title/{title}",
-            "/recommend/genre/{genre}",
-            "/recommend/year/{year}",
-            "/search/{query}"
+            "/recommend/genre/{genre}"
         ]
     }
 
@@ -116,48 +114,6 @@ async def recommend_by_genre(
         )
     except Exception as e:
         logger.error(f"Error al obtener recomendaciones por género: {str(e)}")
-        return RecommendationResponse(
-            error=True,
-            message=f"Error al procesar la solicitud: {str(e)}"
-        )
-
-@app.get("/recommend/year/{year}", response_model=RecommendationResponse)
-async def recommend_by_year(
-    year: int = Field(..., ge=1900, le=2024),
-    top_n: int = Field(default=10, ge=1, le=50)
-):
-    """Obtener recomendaciones basadas en el año de una película."""
-    try:
-        logger.info(f"Buscando recomendaciones para año: {year}")
-        recommendations = model.recommend_by_year(year, top_n)
-        gc.collect()
-        return RecommendationResponse(
-            error=False,
-            recommendations=recommendations
-        )
-    except Exception as e:
-        logger.error(f"Error al obtener recomendaciones por año: {str(e)}")
-        return RecommendationResponse(
-            error=True,
-            message=f"Error al procesar la solicitud: {str(e)}"
-        )
-
-@app.get("/search/{query}", response_model=RecommendationResponse)
-async def search_movies(
-    query: str,
-    limit: int = Field(default=10, ge=1, le=50)
-):
-    """Buscar películas por título o descripción."""
-    try:
-        logger.info(f"Buscando películas con query: {query}")
-        recommendations = model.search_movies(query, limit)
-        gc.collect()
-        return RecommendationResponse(
-            error=False,
-            recommendations=recommendations
-        )
-    except Exception as e:
-        logger.error(f"Error al buscar películas: {str(e)}")
         return RecommendationResponse(
             error=True,
             message=f"Error al procesar la solicitud: {str(e)}"
