@@ -55,11 +55,19 @@ try:
     df_filtrado = pd.read_parquet(data_path)
     logger.info(f"Datos cargados exitosamente. Total de películas: {len(df_filtrado)}")
     
-    # Asegurarse de que los géneros sean listas
+    # Asegurarse de que los géneros sean listas de strings
     if 'generos' in df_filtrado.columns:
+        # Convertir géneros a listas de strings
         df_filtrado['generos'] = df_filtrado['generos'].apply(
-            lambda x: x.split(',') if isinstance(x, str) else []
+            lambda x: [str(g).strip() for g in x.split(',')] if isinstance(x, str) else []
         )
+        
+        # Verificar que no haya arrays de numpy
+        for idx, row in df_filtrado.iterrows():
+            if isinstance(row['generos'], np.ndarray):
+                df_filtrado.at[idx, 'generos'] = [str(g) for g in row['generos']]
+            elif not isinstance(row['generos'], list):
+                df_filtrado.at[idx, 'generos'] = [str(row['generos'])]
 except Exception as e:
     logger.error(f"Error al cargar los datos: {str(e)}")
     raise
@@ -292,10 +300,13 @@ async def buscar_peliculas(
             sinopsis_match = df_filtrado[df_filtrado['sinopsis'].str.lower().str.contains(query, na=False)]
             
             # Búsqueda en géneros (solo si es necesario)
-            # Convertir géneros a string para evitar problemas con arrays
-            generos_match = df_filtrado[df_filtrado['generos'].apply(
-                lambda x: any(query in str(g).lower() for g in x) if isinstance(x, list) else False
-            )]
+            # Usar una función más segura para buscar en géneros
+            def buscar_en_generos(generos):
+                if not isinstance(generos, list):
+                    return False
+                return any(query in str(g).lower() for g in generos)
+            
+            generos_match = df_filtrado[df_filtrado['generos'].apply(buscar_en_generos)]
             
             # Combinar resultados
             resultados = pd.concat([titulos_match, sinopsis_match, generos_match]).drop_duplicates()
@@ -306,11 +317,9 @@ async def buscar_peliculas(
         # Convertir a diccionario de manera eficiente y segura
         resultados_dict = []
         for _, row in resultados.iterrows():
-            # Convertir géneros a lista de strings para evitar problemas con numpy arrays
+            # Asegurarse de que los géneros sean una lista de strings
             generos = row['generos']
-            if isinstance(generos, np.ndarray):
-                generos = generos.tolist()
-            elif not isinstance(generos, list):
+            if not isinstance(generos, list):
                 generos = [str(generos)]
             
             # Asegurarse de que todos los valores sean serializables
@@ -333,7 +342,7 @@ async def buscar_peliculas(
         # Devolver un error 500 con mensaje claro en lugar de lanzar excepción
         return {
             "error": True,
-            "mensaje": "Error al procesar la búsqueda",
+            "mensaje": "Error en la búsqueda",
             "detalle": str(e),
             "total_resultados": 0,
             "resultados": []
