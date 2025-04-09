@@ -48,15 +48,24 @@ python -c "import nltk; nltk.download('stopwords'); nltk.download('punkt')"
 ```
 proyecto/
 ├── data/
+│   ├── movies.parquet
 │   └── movies_filtrado.parquet
+├── images/
+│   ├── endpoint1.png
+│   └── endpoint2.png
 ├── models/
-│   ├── __init__.py
 │   ├── hybrid_model.py
-│   ├── tfidf_model.py
-│   └── sentence_transformer_model.py
+│   ├── sentence_transformer_model.py
+│   └── tfidf_model.py
+├── notebooks/
+│   ├── EDA.ipynb
+│   ├── ETL.ipynb
+│   ├── TF-IDF-Cosine-Sim_model.ipynb
+│   └── all-MiniLM-L6-v2_model.ipynb
+├── README.md
 ├── main.py
 ├── requirements.txt
-└── README.md
+└── .gitignore
 ```
 
 ## Uso
