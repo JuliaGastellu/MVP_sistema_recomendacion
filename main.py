@@ -257,6 +257,19 @@ async def buscar_peliculas(
             
         query = query.strip().lower()
         
+        # Asegurarse de que las columnas existan y sean del tipo correcto
+        if 'titulo' not in df_filtrado.columns or 'sinopsis' not in df_filtrado.columns:
+            logger.error("Columnas 'titulo' o 'sinopsis' no encontradas en el DataFrame")
+            return {
+                "error": True,
+                "mensaje": "Error en la estructura de datos",
+                "detalle": "Columnas necesarias no encontradas en el dataset"
+            }
+        
+        # Convertir columnas a string si no lo son ya
+        df_filtrado['titulo'] = df_filtrado['titulo'].astype(str)
+        df_filtrado['sinopsis'] = df_filtrado['sinopsis'].astype(str)
+        
         # Buscar por título (prioridad alta)
         title_matches = df_filtrado[df_filtrado['titulo'].str.lower().str.contains(query, na=False)]
         
@@ -265,6 +278,12 @@ async def buscar_peliculas(
         
         # Combinar resultados, dando prioridad a los títulos
         results = pd.concat([title_matches, synopsis_matches]).drop_duplicates().head(limit)
+        
+        # Imprimir información de depuración
+        logger.info(f"Búsqueda para: '{query}'")
+        logger.info(f"Resultados encontrados: {len(results)}")
+        logger.info(f"Títulos encontrados: {len(title_matches)}")
+        logger.info(f"Sinopsis encontradas: {len(synopsis_matches)}")
         
         if results.empty:
             # Buscar títulos similares para sugerencias
@@ -286,11 +305,23 @@ async def buscar_peliculas(
         # Preparar resultados
         formatted_results = []
         for _, row in results.iterrows():
+            # Asegurarse de que los campos existan y tengan valores por defecto
+            titulo = row.get("titulo", "Sin título")
+            sinopsis = row.get("sinopsis", "Sin sinopsis")
+            puntuacion = float(row.get("puntuacion", 0.0))
+            
+            # Manejar géneros de manera segura
+            generos = row.get("generos", [])
+            if isinstance(generos, list):
+                generos_str = ", ".join(generos)
+            else:
+                generos_str = str(generos)
+            
             formatted_results.append({
-                "titulo": row["titulo"],
-                "sinopsis": row["sinopsis"],
-                "puntuacion": float(row["puntuacion"]),
-                "generos": ", ".join(row["generos"]) if isinstance(row["generos"], list) else row["generos"]
+                "titulo": titulo,
+                "sinopsis": sinopsis,
+                "puntuacion": puntuacion,
+                "generos": generos_str
             })
         
         return {
