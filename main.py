@@ -202,13 +202,15 @@ async def global_exception_handler(request, exc):
 async def root():
     """
     Endpoint raíz que muestra información básica sobre la API.
+    Proporciona una descripción general del sistema y lista los endpoints disponibles.
     """
     return {
         "mensaje": "Bienvenido al Sistema de Recomendación de Películas",
         "version": "1.0.0",
+        "descripcion": "Sistema de recomendación híbrido que combina TF-IDF y Sentence Transformers para sugerir películas similares",
         "endpoints_disponibles": [
             "/recomendacion/{titulo}",
-            "/recomendacion_genero/{titulo}"
+            "/recomendacion_genero/{genero}"
         ]
     }
 
@@ -219,7 +221,23 @@ async def recomendar_peliculas(
 ):
     """
     Obtiene recomendaciones de películas basadas en un título.
-    Utiliza un modelo híbrido que combina TF-IDF y Sentence Transformers.
+    
+    Este endpoint utiliza un modelo híbrido que combina:
+    - TF-IDF para análisis de texto
+    - Sentence Transformers para comprensión semántica
+    
+    Características:
+    - No es sensible a mayúsculas/minúsculas
+    - Busca coincidencias parciales en títulos
+    - Ordena resultados por puntuación
+    - Devuelve información detallada de cada película
+    
+    Parámetros:
+    - titulo: Título de la película (puede ser parcial)
+    - limit: Número de recomendaciones (1-20)
+    
+    Retorna:
+    - Lista de películas recomendadas con título, sinopsis, puntuación y géneros
     """
     try:
         # Verificar que el DataFrame esté cargado
@@ -291,8 +309,19 @@ async def recomendar_por_genero(
     limit: int = Query(5, ge=1, le=20, description="Número de recomendaciones a devolver")
 ):
     """
-    Obtiene recomendaciones de películas basadas en un género específico.
-    No es sensible a mayúsculas/minúsculas.
+    Obtiene las películas mejor puntuadas de un género específico.
+    
+    Características:
+    - No es sensible a mayúsculas/minúsculas
+    - Ordena por puntuación de mayor a menor
+    - Devuelve información detallada de cada película
+    
+    Parámetros:
+    - genero: Género de la película (ej: "drama", "acción", "comedia")
+    - limit: Número de recomendaciones (1-20)
+    
+    Retorna:
+    - Lista de películas del género especificado, ordenadas por puntuación
     """
     try:
         # Verificar que el DataFrame esté cargado
