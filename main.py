@@ -292,7 +292,10 @@ async def buscar_peliculas(
             sinopsis_match = df_filtrado[df_filtrado['sinopsis'].str.lower().str.contains(query, na=False)]
             
             # Búsqueda en géneros (solo si es necesario)
-            generos_match = df_filtrado[df_filtrado['generos'].apply(lambda x: any(query in g.lower() for g in x) if isinstance(x, list) else False)]
+            # Convertir géneros a string para evitar problemas con arrays
+            generos_match = df_filtrado[df_filtrado['generos'].apply(
+                lambda x: any(query in str(g).lower() for g in x) if isinstance(x, list) else False
+            )]
             
             # Combinar resultados
             resultados = pd.concat([titulos_match, sinopsis_match, generos_match]).drop_duplicates()
@@ -300,8 +303,24 @@ async def buscar_peliculas(
         # Ordenar y limitar resultados
         resultados = resultados.sort_values('puntuacion', ascending=False).head(limit)
         
-        # Convertir a diccionario de manera eficiente
-        resultados_dict = resultados.to_dict('records')
+        # Convertir a diccionario de manera eficiente y segura
+        resultados_dict = []
+        for _, row in resultados.iterrows():
+            # Convertir géneros a lista de strings para evitar problemas con numpy arrays
+            generos = row['generos']
+            if isinstance(generos, np.ndarray):
+                generos = generos.tolist()
+            elif not isinstance(generos, list):
+                generos = [str(generos)]
+            
+            # Asegurarse de que todos los valores sean serializables
+            pelicula = {
+                "titulo": str(row['titulo']),
+                "sinopsis": str(row['sinopsis']),
+                "puntuacion": float(row['puntuacion']),
+                "generos": [str(g) for g in generos]
+            }
+            resultados_dict.append(pelicula)
         
         return {
             "error": False,
@@ -314,7 +333,7 @@ async def buscar_peliculas(
         # Devolver un error 500 con mensaje claro en lugar de lanzar excepción
         return {
             "error": True,
-            "mensaje": "Error en la búsqueda",
+            "mensaje": "Error al procesar la búsqueda",
             "detalle": str(e),
             "total_resultados": 0,
             "resultados": []
