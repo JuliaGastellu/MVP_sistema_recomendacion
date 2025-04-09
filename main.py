@@ -255,7 +255,15 @@ async def buscar_peliculas(
         }
     except Exception as e:
         logger.error(f"Error en búsqueda: {str(e)}")
-        raise HTTPException(status_code=500, detail="Error interno del servidor")
+        # Devolver una respuesta JSON con información sobre el error
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": True,
+                "mensaje": "Error al procesar la búsqueda",
+                "detalle": str(e)
+            }
+        )
 
 if __name__ == "__main__":
     import uvicorn
