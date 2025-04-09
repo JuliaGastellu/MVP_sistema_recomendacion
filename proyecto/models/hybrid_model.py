@@ -76,7 +76,7 @@ class HybridRecommender:
             # Cargar solo las columnas necesarias para reducir el uso de memoria
             self.df = pd.read_parquet(
                 self.data_path,
-                columns=['titulo', 'sinopsis', 'generos', 'año', 'puntuacion']
+                columns=['titulo', 'sinopsis', 'generos', 'anio_estreno', 'puntuacion']
             )
             self._preprocess_data()
             logger.info("Datos cargados y preprocesados correctamente")
@@ -250,7 +250,7 @@ class HybridRecommender:
             
             similar_indices = np.argsort(similarities)[::-1][1:top_n+1]
             
-            recommendations = self.df.iloc[similar_indices][["titulo", "sinopsis", "puntuacion", "generos"]]
+            recommendations = self.df.iloc[similar_indices][["titulo", "sinopsis", "puntuacion", "generos", "anio_estreno"]]
             recommendations['similitud'] = similarities[similar_indices]
             
             scaler = MinMaxScaler()
@@ -292,7 +292,7 @@ class HybridRecommender:
             # Obtener las películas más similares
             similar_indices = np.argsort(similarities)[::-1][:top_n]
             
-            recommendations = self.df.iloc[similar_indices][["titulo", "sinopsis", "puntuacion", "generos"]]
+            recommendations = self.df.iloc[similar_indices][["titulo", "sinopsis", "puntuacion", "generos", "anio_estreno"]]
             recommendations['similitud'] = similarities[similar_indices]
             
             scaler = MinMaxScaler()
@@ -314,7 +314,7 @@ class HybridRecommender:
         Recomienda películas basadas en el año de lanzamiento.
         """
         try:
-            matching_movies = self.df[self.df['año'] == year]
+            matching_movies = self.df[self.df['anio_estreno'] == year]
             
             if matching_movies.empty:
                 return {
@@ -323,7 +323,7 @@ class HybridRecommender:
                 }
             
             # Ordenar por puntuación y devolver las mejores
-            recommendations = matching_movies.sort_values(by='puntuacion', ascending=False).head(top_n)[["titulo", "sinopsis", "puntuacion", "generos", "año"]]
+            recommendations = matching_movies.sort_values(by='puntuacion', ascending=False).head(top_n)[["titulo", "sinopsis", "puntuacion", "generos", "anio_estreno"]]
             
             return {
                 'error': False,
@@ -362,7 +362,7 @@ class HybridRecommender:
             return {
                 'error': False,
                 'message': f"Se encontraron {len(results)} películas",
-                'results': results[["titulo", "sinopsis", "puntuacion"]].to_dict(orient='records')
+                'results': results[["titulo", "sinopsis", "puntuacion", "generos", "anio_estreno"]].to_dict(orient='records')
             }
         except Exception as e:
             logger.error(f"Error en búsqueda: {str(e)}")
