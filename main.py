@@ -261,33 +261,64 @@ async def buscar_peliculas(
     limit: int = Query(5, ge=1, le=20)
 ):
     try:
-        query = query.lower().strip()
+        # Verificar que el DataFrame esté cargado
+        if df_filtrado is None or df_filtrado.empty:
+            logger.error("El DataFrame está vacío o no se ha cargado correctamente")
+            return {
+                "error": True,
+                "mensaje": "No hay datos disponibles para la búsqueda",
+                "total_resultados": 0,
+                "resultados": []
+            }
         
-        # Búsqueda en títulos
+        # Limpiar la consulta
+        query = query.lower().strip()
+        if not query:
+            return {
+                "error": True,
+                "mensaje": "La consulta no puede estar vacía",
+                "total_resultados": 0,
+                "resultados": []
+            }
+        
+        # Búsqueda en títulos (más rápida)
         titulos_match = df_filtrado[df_filtrado['titulo'].str.lower().str.contains(query, na=False)]
         
-        # Búsqueda en sinopsis
-        sinopsis_match = df_filtrado[df_filtrado['sinopsis'].str.lower().str.contains(query, na=False)]
+        # Si encontramos suficientes resultados en títulos, no buscamos en otros campos
+        if len(titulos_match) >= limit:
+            resultados = titulos_match.head(limit)
+        else:
+            # Búsqueda en sinopsis (solo si es necesario)
+            sinopsis_match = df_filtrado[df_filtrado['sinopsis'].str.lower().str.contains(query, na=False)]
+            
+            # Búsqueda en géneros (solo si es necesario)
+            generos_match = df_filtrado[df_filtrado['generos'].apply(lambda x: any(query in g.lower() for g in x) if isinstance(x, list) else False)]
+            
+            # Combinar resultados
+            resultados = pd.concat([titulos_match, sinopsis_match, generos_match]).drop_duplicates()
         
-        # Búsqueda en géneros
-        generos_match = df_filtrado[df_filtrado['generos'].apply(lambda x: any(query in g.lower() for g in x) if isinstance(x, list) else False)]
-        
-        # Combinar y ordenar resultados
-        resultados = pd.concat([titulos_match, sinopsis_match, generos_match]).drop_duplicates()
+        # Ordenar y limitar resultados
         resultados = resultados.sort_values('puntuacion', ascending=False).head(limit)
+        
+        # Convertir a diccionario de manera eficiente
+        resultados_dict = resultados.to_dict('records')
         
         return {
             "error": False,
             "mensaje": "Búsqueda completada exitosamente",
-            "total_resultados": len(resultados),
-            "resultados": resultados.to_dict('records')
+            "total_resultados": len(resultados_dict),
+            "resultados": resultados_dict
         }
     except Exception as e:
         logger.error(f"Error en buscar_peliculas: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error en la búsqueda: {str(e)}"
-        )
+        # Devolver un error 500 con mensaje claro en lugar de lanzar excepción
+        return {
+            "error": True,
+            "mensaje": "Error en la búsqueda",
+            "detalle": str(e),
+            "total_resultados": 0,
+            "resultados": []
+        }
 
 if __name__ == "__main__":
     import uvicorn
