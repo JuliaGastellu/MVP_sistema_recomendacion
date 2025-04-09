@@ -233,37 +233,79 @@ async def buscar_peliculas(
     query: str,
     limit: int = Query(5, ge=1, le=20, description="Número máximo de resultados")
 ):
-    """Busca películas por título o descripción."""
+    """
+    Busca películas por título o descripción.
+    
+    Este endpoint permite buscar películas en la base de datos utilizando palabras clave.
+    La búsqueda se realiza tanto en los títulos como en las sinopsis de las películas.
+    
+    Parámetros:
+    - query: Palabra o frase para buscar
+    - limit: Número máximo de resultados a devolver (entre 1 y 20)
+    
+    Retorna:
+    - Un objeto JSON con los resultados de la búsqueda
+    """
     try:
+        # Validar que la consulta no esté vacía
+        if not query or query.strip() == "":
+            return {
+                "error": False,
+                "mensaje": "La consulta de búsqueda no puede estar vacía",
+                "resultados": []
+            }
+            
         query = query.strip().lower()
         
-        # Buscar por título
-        title_matches = df_filtrado[df_filtrado['titulo'].str.contains(query, case=False, na=False)]
+        # Buscar por título (prioridad alta)
+        title_matches = df_filtrado[df_filtrado['titulo'].str.lower().str.contains(query, na=False)]
         
-        # Buscar por sinopsis
-        synopsis_matches = df_filtrado[df_filtrado['sinopsis'].str.contains(query, case=False, na=False)]
+        # Buscar por sinopsis (prioridad baja)
+        synopsis_matches = df_filtrado[df_filtrado['sinopsis'].str.lower().str.contains(query, na=False)]
         
-        # Combinar resultados
+        # Combinar resultados, dando prioridad a los títulos
         results = pd.concat([title_matches, synopsis_matches]).drop_duplicates().head(limit)
         
         if results.empty:
-            return {"mensaje": "No se encontraron películas", "resultados": []}
+            # Buscar títulos similares para sugerencias
+            similar_titles = find_similar_titles(query, df_filtrado)
+            if similar_titles:
+                return {
+                    "error": False,
+                    "mensaje": "No se encontraron películas exactas",
+                    "sugerencias": similar_titles[:3],
+                    "resultados": []
+                }
+            else:
+                return {
+                    "error": False,
+                    "mensaje": "No se encontraron películas",
+                    "resultados": []
+                }
+        
+        # Preparar resultados
+        formatted_results = []
+        for _, row in results.iterrows():
+            formatted_results.append({
+                "titulo": row["titulo"],
+                "sinopsis": row["sinopsis"],
+                "puntuacion": float(row["puntuacion"]),
+                "generos": ", ".join(row["generos"]) if isinstance(row["generos"], list) else row["generos"]
+            })
         
         return {
+            "error": False,
             "mensaje": f"Se encontraron {len(results)} películas",
-            "resultados": results[["titulo", "sinopsis", "puntuacion"]].to_dict(orient='records')
+            "resultados": formatted_results
         }
     except Exception as e:
         logger.error(f"Error en búsqueda: {str(e)}")
         # Devolver una respuesta JSON con información sobre el error
-        return JSONResponse(
-            status_code=500,
-            content={
-                "error": True,
-                "mensaje": "Error al procesar la búsqueda",
-                "detalle": str(e)
-            }
-        )
+        return {
+            "error": True,
+            "mensaje": "Error al procesar la búsqueda",
+            "detalle": str(e)
+        }
 
 if __name__ == "__main__":
     import uvicorn
