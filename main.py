@@ -4,6 +4,11 @@ from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import uvicorn
 import logging
+import sys
+import os
+
+# Agregar el directorio proyecto al path de Python
+sys.path.append(os.path.join(os.path.dirname(__file__), 'proyecto'))
 from models.hybrid_model import load_hybrid_model
 
 # Configurar logging
