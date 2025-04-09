@@ -8,7 +8,7 @@
 
 Un sistema inteligente que recomienda películas basado en análisis de reseñas utilizando **Procesamiento de Lenguaje Natural** y algoritmos de similitud. ¡Descubre tu próxima película favorita!
 
-🌐 **API en vivo**: [Desplegado en Render](https://mvp-sistema-recomendacion.onrender.com/docs)
+🌐 **API en vivo**: [Desplegado en Render](https://sistema-recomendacion-peliculas-mgij.onrender.com/docs)
 
 ## 🚀 Características Destacadas
 
@@ -74,9 +74,10 @@ Ambos modelos se exponen mediante endpoints independientes dentro de la API, per
 
 | **Configuración**   | Pydantic Settings, Python-dotenv                                           |
 
-## 🏗️ Estructura del Proyecto
+## Estructura del Proyecto
 
 ```
+MVP_sistema_recomendacion/
 ├── proyecto/
 │   ├── data/
 │   │   ├── movies.parquet
@@ -146,21 +147,16 @@ python -m spacy download es_core_news_sm
 ### ▶️ Iniciar la API
 
 ```bash
-
-uvicorn app.main:app --reload
-
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 ### 🔍 Ejemplo de Consulta
 
 #### Recomendaciones basadas en reseñas (TF-IDF + Cosine Similarity)
 
-
 ```python
-response = requests.get("http://localhost:8000/api/v1/recomendacion/Origen")
-
+response = requests.get("http://localhost:8000/recomendacion/Origen")
 print(response.json())
-
 ```
 
 **Salida Esperada:**
@@ -170,15 +166,20 @@ print(response.json())
 #### Recomendación basada en géneros (Sistema de recomendación por géneros)
 
 ```python
-response = requests.get("http://localhost:8000/api/v1/recomendacion_genero/Origen")
-
+response = requests.get("http://localhost:8000/recomendacion_genero/Origen")
 print(response.json())
-
 ```
 
 **Salida Esperada:**
 
 ![Salida Esperada:](proyecto/images/endpoint2.png)
+
+#### Búsqueda de películas
+
+```python
+response = requests.get("http://localhost:8000/buscar/matrix")
+print(response.json())
+```
 
 ## 🔍 Monitoreo y Logging
 

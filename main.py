@@ -31,6 +31,11 @@ stopwords_es = stopwords.words('spanish')
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 data_path = os.path.join(BASE_DIR, 'proyecto', 'data', 'movies_filtrado.parquet')
 
+# Verificar que el archivo existe
+if not os.path.exists(data_path):
+    logger.error(f"Archivo de datos no encontrado en: {data_path}")
+    raise FileNotFoundError(f"Archivo de datos no encontrado en: {data_path}")
+
 # Modelos Pydantic para validación
 class MovieRecommendation(BaseModel):
     titulo: str
@@ -235,28 +240,8 @@ async def buscar_peliculas(
 ):
     """
     Busca películas por título o descripción.
-    
-    Este endpoint permite buscar películas en la base de datos utilizando palabras clave.
-    La búsqueda se realiza tanto en los títulos como en las sinopsis de las películas.
-    
-    Parámetros:
-    - query: Palabra o frase para buscar
-    - limit: Número máximo de resultados a devolver (entre 1 y 20)
-    
-    Retorna:
-    - Un objeto JSON con los resultados de la búsqueda
     """
     try:
-        # Validar que la consulta no esté vacía
-        if not query or query.strip() == "":
-            return {
-                "error": False,
-                "mensaje": "La consulta de búsqueda no puede estar vacía",
-                "resultados": []
-            }
-            
-        query = query.strip().lower()
-        
         # Verificar que el DataFrame esté cargado correctamente
         if df_filtrado is None or df_filtrado.empty:
             logger.error("El DataFrame está vacío o no se ha cargado correctamente")
@@ -266,102 +251,54 @@ async def buscar_peliculas(
                 "resultados": []
             }
         
-        # Verificar que las columnas necesarias existan
-        required_columns = ['titulo', 'sinopsis', 'puntuacion', 'generos']
-        missing_columns = [col for col in required_columns if col not in df_filtrado.columns]
+        # Imprimir información de depuración sobre el DataFrame
+        logger.info(f"Columnas disponibles: {df_filtrado.columns.tolist()}")
+        logger.info(f"Total de películas en el DataFrame: {len(df_filtrado)}")
         
-        if missing_columns:
-            logger.error(f"Columnas faltantes en el DataFrame: {missing_columns}")
-            return {
-                "error": False,
-                "mensaje": "Estructura de datos incompleta",
-                "resultados": []
-            }
+        # Limpiar la consulta
+        query = query.lower().strip()
         
-        # Asegurarse de que las columnas sean del tipo correcto
-        df_search = df_filtrado.copy()
-        df_search['titulo'] = df_search['titulo'].fillna('').astype(str)
-        df_search['sinopsis'] = df_search['sinopsis'].fillna('').astype(str)
-        df_search['puntuacion'] = df_search['puntuacion'].fillna(0.0).astype(float)
+        # Buscar en títulos
+        titulos_match = df_filtrado[df_filtrado['titulo'].str.lower().str.contains(query, na=False)]
         
-        # Buscar por título (prioridad alta)
-        title_matches = df_search[df_search['titulo'].str.lower().str.contains(query, na=False)]
+        # Buscar en sinopsis
+        sinopsis_match = df_filtrado[df_filtrado['sinopsis'].str.lower().str.contains(query, na=False)]
         
-        # Buscar por sinopsis (prioridad baja)
-        synopsis_matches = df_search[df_search['sinopsis'].str.lower().str.contains(query, na=False)]
+        # Buscar en géneros
+        generos_match = df_filtrado[df_filtrado['generos'].apply(lambda x: any(query in g.lower() for g in x) if isinstance(x, list) else False)]
         
-        # Combinar resultados, dando prioridad a los títulos
-        results = pd.concat([title_matches, synopsis_matches]).drop_duplicates().head(limit)
+        # Combinar resultados
+        resultados = pd.concat([titulos_match, sinopsis_match, generos_match]).drop_duplicates()
         
-        # Imprimir información de depuración
-        logger.info(f"Búsqueda para: '{query}'")
-        logger.info(f"Resultados encontrados: {len(results)}")
-        logger.info(f"Títulos encontrados: {len(title_matches)}")
-        logger.info(f"Sinopsis encontradas: {len(synopsis_matches)}")
+        # Ordenar por puntuación
+        resultados = resultados.sort_values('puntuacion', ascending=False)
         
-        if results.empty:
-            # Buscar títulos similares para sugerencias
-            try:
-                similar_titles = find_similar_titles(query, df_search)
-                if similar_titles:
-                    return {
-                        "error": False,
-                        "mensaje": "No se encontraron películas exactas",
-                        "sugerencias": similar_titles[:3],
-                        "resultados": []
-                    }
-            except Exception as e:
-                logger.error(f"Error al buscar títulos similares: {str(e)}")
-            
-            return {
-                "error": False,
-                "mensaje": "No se encontraron películas",
-                "resultados": []
-            }
+        # Limitar resultados
+        resultados = resultados.head(limit)
         
-        # Preparar resultados de manera segura
-        formatted_results = []
-        for _, row in results.iterrows():
-            try:
-                # Extraer datos de manera segura
-                titulo = str(row.get("titulo", "Sin título"))
-                sinopsis = str(row.get("sinopsis", "Sin sinopsis"))
-                
-                # Manejar puntuación de manera segura
-                try:
-                    puntuacion = float(row.get("puntuacion", 0.0))
-                except (ValueError, TypeError):
-                    puntuacion = 0.0
-                
-                # Manejar géneros de manera segura
-                generos = row.get("generos", [])
-                if isinstance(generos, list):
-                    generos_str = ", ".join([str(g) for g in generos if g])
-                else:
-                    generos_str = str(generos)
-                
-                formatted_results.append({
-                    "titulo": titulo,
-                    "sinopsis": sinopsis,
-                    "puntuacion": puntuacion,
-                    "generos": generos_str
-                })
-            except Exception as e:
-                logger.error(f"Error al formatear resultado: {str(e)}")
-                # Continuar con el siguiente resultado
+        # Formatear resultados
+        peliculas = []
+        for _, pelicula in resultados.iterrows():
+            peliculas.append({
+                "titulo": pelicula['titulo'],
+                "sinopsis": pelicula['sinopsis'],
+                "puntuacion": float(pelicula['puntuacion']),
+                "generos": ", ".join(pelicula['generos']) if isinstance(pelicula['generos'], list) else pelicula['generos']
+            })
         
         return {
             "error": False,
-            "mensaje": f"Se encontraron {len(formatted_results)} películas",
-            "resultados": formatted_results
+            "mensaje": "Búsqueda completada exitosamente",
+            "total_resultados": len(peliculas),
+            "resultados": peliculas
         }
+        
     except Exception as e:
-        logger.error(f"Error en búsqueda: {str(e)}")
-        # Devolver una respuesta JSON con información sobre el error
+        logger.error(f"Error en la búsqueda: {str(e)}")
         return {
             "error": True,
-            "mensaje": "Error al procesar la búsqueda",
-            "detalle": str(e)
+            "mensaje": f"Error en la búsqueda: {str(e)}",
+            "resultados": []
         }
 
 if __name__ == "__main__":
