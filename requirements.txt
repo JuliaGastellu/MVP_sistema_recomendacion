@@ -8,6 +8,8 @@ scikit-learn==1.2.2
 nltk==3.8.1
 torch==2.0.1
 torchvision==0.15.2
-huggingface_hub==0.29.3
-sentence-transformers==2.1.0
-transformers==4.50.1
+huggingface_hub==0.16.4
+sentence-transformers==2.2.2
+transformers==4.30.2
+pydantic-settings==2.0.3
+python-dotenv==1.0.0

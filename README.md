@@ -16,6 +16,9 @@ Un sistema inteligente que recomienda películas basado en análisis de reseñas
 - **Pipeline de Datos Integrado**: Extracción, limpieza y transformación de datos directamente desde la api de TMDb.
 - **Visualizaciones Interesantes**: Insights sobre géneros, puntuaciones y tendencias cinematográficas.
 - **API RESTful**: Interfaz moderna con documentación Swagger integrada.
+- **Arquitectura Modular**: Estructura de código organizada y mantenible.
+- **Sistema de Logging**: Monitoreo detallado de la aplicación.
+- **Manejo de Errores Robusto**: Respuestas claras y descriptivas ante problemas.
 
 ## 🧠 Arquitectura del Sistema
 
@@ -69,6 +72,31 @@ Ambos modelos se exponen mediante endpoints independientes dentro de la API, per
 
 | **Despliegue**      | Render                                                           |
 
+| **Configuración**   | Pydantic Settings, Python-dotenv                                           |
+
+## 🏗️ Estructura del Proyecto
+
+```
+proyecto/
+├── app/
+│   ├── api/
+│   │   ├── routes.py         # Endpoints de la API
+│   ├── core/
+│   │   ├── config.py         # Configuración centralizada
+│   ├── models/
+│   │   ├── recommendation.py # Lógica de recomendación
+│   ├── utils/
+│   │   └── data_processing.py # Utilidades de procesamiento
+│   └── main.py               # Punto de entrada de la aplicación
+├── data/
+│   └── movies_filtrado.parquet # Datos de películas
+├── notebooks/                # Jupyter notebooks para análisis
+├── tests/                    # Tests unitarios y de integración
+├── .env                      # Variables de entorno
+├── requirements.txt          # Dependencias del proyecto
+└── README.md                 # Documentación principal
+```
+
 ## 🛠️ Instalación Rápida
 
 1. **Clonar repositorio**
@@ -103,12 +131,12 @@ python -m spacy download es_core_news_sm
 
 ```
 
-4. **Configurar API Key**
+4. **Configurar variables de entorno**
 
 ```bash
 
-echo "TMDB_API_KEY=tu_clave_aqui" > .env
-
+# El archivo .env ya está configurado con valores predeterminados
+# Puedes modificarlo según tus necesidades
 ```
 
 ## 💻 Uso del Sistema
@@ -117,7 +145,7 @@ echo "TMDB_API_KEY=tu_clave_aqui" > .env
 
 ```bash
 
-uvicorn app:app --reload
+uvicorn app.main:app --reload
 
 ```
 
@@ -127,7 +155,7 @@ uvicorn app:app --reload
 
 
 ```python
-response = requests.get("http://localhost:8000/recomendacion/reseñas/Origen")
+response = requests.get("http://localhost:8000/api/v1/recomendacion/Origen")
 
 print(response.json())
 
@@ -140,7 +168,7 @@ print(response.json())
 #### Recomendación basada en géneros (Sistema de recomendación por géneros)
 
 ```python
-response = requests.get("http://localhost:8000/recomendacion/generos/Origen")
+response = requests.get("http://localhost:8000/api/v1/recomendacion_genero/Origen")
 
 print(response.json())
 
@@ -150,6 +178,19 @@ print(response.json())
 
 ![Salida Esperada:](proyecto/images/endpoint2.png)
 
+## 🔍 Monitoreo y Logging
+
+El sistema implementa un sistema de logging detallado que permite:
+
+- Rastrear el flujo de ejecución de la aplicación
+- Identificar errores y excepciones
+- Monitorear el rendimiento de los endpoints
+- Facilitar la depuración de problemas
+
+Los logs se configuran con el siguiente formato:
+```
+%(asctime)s - %(name)s - %(levelname)s - %(message)s
+```
 
 ## 🤝 Cómo Contribuir
 
