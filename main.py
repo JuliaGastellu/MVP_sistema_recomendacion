@@ -6,13 +6,20 @@ import nltk
 from nltk.corpus import stopwords
 from sentence_transformers import SentenceTransformer
 import numpy as np
+import os
 
 # Descargar stopwords en español
 nltk.download('stopwords')
 stopwords_es = stopwords.words('spanish')
 
-# Cargar el DataFrame filtrado
-df_filtrado = pd.read_parquet('C:/Users/jugas/OneDrive/Escritorio/Movie recommender/MVP_sistema_recomendacion/proyecto/data/movies_filtrado.parquet')
+# Obtener la ruta base del proyecto
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+data_path = os.path.join(BASE_DIR, 'proyecto', 'data', 'movies_filtrado.parquet')
+
+try:
+    df_filtrado = pd.read_parquet(data_path)
+except FileNotFoundError:
+    raise Exception(f"No se pudo encontrar el archivo de datos en: {data_path}")
 
 # Asegurar que las reseñas no tengan valores nulos
 df_filtrado['reseñas'] = df_filtrado['reseñas'].fillna('')
@@ -80,9 +87,8 @@ async def recomendacion_genero(titulo: str, top_n: int = 5):
     return recomendaciones.to_dict(orient='records')
 
 # Ejecutar la API
-import os
 import uvicorn
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
+    port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
