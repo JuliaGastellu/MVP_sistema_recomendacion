@@ -1,25 +1,25 @@
-# Sistema de Recomendación de Películas
+# 🎬 Sistema de Recomendación de Películas
 
 Este proyecto implementa un sistema de recomendación de películas utilizando un modelo híbrido que combina TF-IDF y Sentence Transformers. El sistema proporciona una API REST para obtener recomendaciones basadas en diferentes criterios.
 
-## Características
+## ✨ Características
 
-- Recomendaciones basadas en título de película
-- Recomendaciones por género
-- Recomendaciones por año de lanzamiento
-- Búsqueda de películas por título o descripción
-- Modelo híbrido que combina TF-IDF y Sentence Transformers
-- API REST con FastAPI
-- Documentación automática de la API
-- Manejo de errores robusto
-- Logging completo
+- 🎯 Recomendaciones basadas en título de película
+- 🎭 Recomendaciones por género
+- 📅 Recomendaciones por año de lanzamiento
+- 🔍 Búsqueda de películas por título o descripción
+- 🤖 Modelo híbrido que combina TF-IDF y Sentence Transformers
+- 🚀 API REST con FastAPI
+- 📚 Documentación automática de la API
+- 🛡️ Manejo de errores robusto
+- 📝 Logging completo
 
-## Requisitos
+## 📋 Requisitos
 
 - Python 3.8 o superior
 - Dependencias listadas en `requirements.txt`
 
-## Instalación
+## 🚀 Instalación
 
 1. Clonar el repositorio:
 ```bash
@@ -43,7 +43,7 @@ pip install -r requirements.txt
 python -c "import nltk; nltk.download('stopwords'); nltk.download('punkt')"
 ```
 
-## Estructura del Proyecto
+## 📁 Estructura del Proyecto
 
 ```
 ├── proyecto/
@@ -68,7 +68,7 @@ python -c "import nltk; nltk.download('stopwords'); nltk.download('punkt')"
 └── .gitignore
 ```
 
-## Uso
+## 💻 Uso
 
 1. Iniciar el servidor:
 ```bash
@@ -79,7 +79,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 - Swagger UI: http://localhost:8000/docs
 - ReDoc: http://localhost:8000/redoc
 
-## Endpoints de la API
+## 🔌 Endpoints de la API
 
 ### GET /
 - Descripción: Información básica sobre la API
@@ -109,7 +109,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
   - query: Término de búsqueda
   - limit: Número máximo de resultados (default: 10)
 
-## Ejemplo de Respuesta
+## 📊 Ejemplo de Respuesta
 
 ```json
 {
@@ -126,7 +126,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 }
 ```
 
-## Modelo Híbrido
+## 🤖 Modelo Híbrido
 
 El sistema utiliza un modelo híbrido que combina:
 
@@ -140,7 +140,7 @@ El sistema utiliza un modelo híbrido que combina:
    - Captura de significado semántico
    - Vectores de alta dimensionalidad
 
-## Contribuir
+## 🤝 Contribuir
 
 1. Fork el repositorio
 2. Crear una rama para tu feature (`git checkout -b feature/AmazingFeature`)
@@ -148,6 +148,6 @@ El sistema utiliza un modelo híbrido que combina:
 4. Push a la rama (`git push origin feature/AmazingFeature`)
 5. Abrir un Pull Request
 
-## Licencia
+## 📄 Licencia
 
 Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles. 
