@@ -1,15 +1,12 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 import uvicorn
 import logging
 import sys
 import os
-
-# Agregar el directorio proyecto al path de Python
-sys.path.append(os.path.join(os.path.dirname(__file__), 'proyecto'))
-from models.hybrid_model import load_hybrid_model
+import nltk
 
 # Configurar logging
 logging.basicConfig(
@@ -18,7 +15,20 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Crear la aplicación FastAPI
+# Descargar recursos necesarios de NLTK
+try:
+    nltk.download('stopwords')
+    nltk.download('punkt')
+    logger.info("Recursos NLTK descargados correctamente")
+except Exception as e:
+    logger.error(f"Error al descargar recursos NLTK: {str(e)}")
+    raise
+
+# Agregar el directorio proyecto al path de Python
+sys.path.append(os.path.join(os.path.dirname(__file__), 'proyecto'))
+from models.hybrid_model import load_hybrid_model
+
+# Inicializar FastAPI
 app = FastAPI(
     title="Sistema de Recomendación de Películas",
     description="API para recomendar películas basada en diferentes criterios",
@@ -28,20 +38,13 @@ app = FastAPI(
 # Configurar CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # En producción, especificar los orígenes permitidos
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Cargar el modelo al iniciar la aplicación
-try:
-    model = load_hybrid_model()
-    logger.info("Modelo cargado correctamente")
-except Exception as e:
-    logger.error(f"Error al cargar el modelo: {str(e)}")
-    raise
-
+# Modelo de respuesta
 class RecommendationResponse(BaseModel):
     """Modelo para la respuesta de recomendaciones."""
     error: bool
@@ -49,11 +52,20 @@ class RecommendationResponse(BaseModel):
     recommendations: Optional[List[Dict[str, Any]]] = None
     suggestions: Optional[List[str]] = None
 
+# Cargar el modelo
+try:
+    logger.info("Iniciando carga del modelo híbrido...")
+    model = load_hybrid_model()
+    logger.info("Modelo híbrido cargado correctamente")
+except Exception as e:
+    logger.error(f"Error al cargar el modelo híbrido: {str(e)}")
+    raise
+
 @app.get("/")
 async def root():
-    """Endpoint raíz que devuelve información básica sobre la API."""
+    """Endpoint raíz que devuelve información sobre la API."""
     return {
-        "message": "Bienvenido al Sistema de Recomendación de Películas",
+        "message": "Sistema de Recomendación de Películas API",
         "version": "1.0.0",
         "endpoints": [
             "/recommend/title/{title}",
@@ -64,56 +76,84 @@ async def root():
     }
 
 @app.get("/recommend/title/{title}", response_model=RecommendationResponse)
-async def recommend_by_title(title: str, top_n: int = 10):
-    """Obtiene recomendaciones de películas basadas en el título."""
+async def recommend_by_title(
+    title: str,
+    top_n: int = Field(default=10, ge=1, le=50)
+):
+    """Obtener recomendaciones basadas en el título de una película."""
     try:
+        logger.info(f"Buscando recomendaciones para título: {title}")
         recommendations = model.recommend_by_title(title, top_n)
         return RecommendationResponse(
             error=False,
             recommendations=recommendations
         )
     except Exception as e:
-        logger.error(f"Error en recommend_by_title: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error al obtener recomendaciones por título: {str(e)}")
+        return RecommendationResponse(
+            error=True,
+            message=f"Error al procesar la solicitud: {str(e)}"
+        )
 
 @app.get("/recommend/genre/{genre}", response_model=RecommendationResponse)
-async def recommend_by_genre(genre: str, top_n: int = 10):
-    """Obtiene recomendaciones de películas basadas en el género."""
+async def recommend_by_genre(
+    genre: str,
+    top_n: int = Field(default=10, ge=1, le=50)
+):
+    """Obtener recomendaciones basadas en el género de una película."""
     try:
+        logger.info(f"Buscando recomendaciones para género: {genre}")
         recommendations = model.recommend_by_genre(genre, top_n)
         return RecommendationResponse(
             error=False,
             recommendations=recommendations
         )
     except Exception as e:
-        logger.error(f"Error en recommend_by_genre: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error al obtener recomendaciones por género: {str(e)}")
+        return RecommendationResponse(
+            error=True,
+            message=f"Error al procesar la solicitud: {str(e)}"
+        )
 
 @app.get("/recommend/year/{year}", response_model=RecommendationResponse)
-async def recommend_by_year(year: int, top_n: int = 10):
-    """Obtiene recomendaciones de películas basadas en el año."""
+async def recommend_by_year(
+    year: int = Field(..., ge=1900, le=2024),
+    top_n: int = Field(default=10, ge=1, le=50)
+):
+    """Obtener recomendaciones basadas en el año de una película."""
     try:
+        logger.info(f"Buscando recomendaciones para año: {year}")
         recommendations = model.recommend_by_year(year, top_n)
         return RecommendationResponse(
             error=False,
             recommendations=recommendations
         )
     except Exception as e:
-        logger.error(f"Error en recommend_by_year: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error al obtener recomendaciones por año: {str(e)}")
+        return RecommendationResponse(
+            error=True,
+            message=f"Error al procesar la solicitud: {str(e)}"
+        )
 
 @app.get("/search/{query}", response_model=RecommendationResponse)
-async def search_movies(query: str, limit: int = 10):
-    """Busca películas por título o descripción."""
+async def search_movies(
+    query: str,
+    limit: int = Field(default=10, ge=1, le=50)
+):
+    """Buscar películas por título o descripción."""
     try:
-        results = model.search_movies(query, limit)
+        logger.info(f"Buscando películas con query: {query}")
+        recommendations = model.search_movies(query, limit)
         return RecommendationResponse(
             error=False,
-            recommendations=results
+            recommendations=recommendations
         )
     except Exception as e:
-        logger.error(f"Error en search_movies: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error al buscar películas: {str(e)}")
+        return RecommendationResponse(
+            error=True,
+            message=f"Error al procesar la solicitud: {str(e)}"
+        )
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

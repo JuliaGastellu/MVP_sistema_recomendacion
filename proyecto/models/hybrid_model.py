@@ -27,6 +27,15 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Descargar recursos necesarios de NLTK
+try:
+    nltk.download('stopwords', quiet=True)
+    nltk.download('punkt', quiet=True)
+    logger.info("Recursos NLTK descargados correctamente en hybrid_model")
+except Exception as e:
+    logger.error(f"Error al descargar recursos NLTK en hybrid_model: {str(e)}")
+    raise
+
 class HybridRecommender:
     """
     Clase para el sistema de recomendación híbrido.
@@ -79,9 +88,17 @@ class HybridRecommender:
             logger.info(f"Cargando modelo {self.model_name}")
             self.st_model = SentenceTransformer(self.model_name)
             
+            # Asegurarse de que stopwords esté disponible
+            try:
+                spanish_stopwords = stopwords.words('spanish')
+            except LookupError:
+                logger.info("Descargando stopwords para español...")
+                nltk.download('stopwords', quiet=True)
+                spanish_stopwords = stopwords.words('spanish')
+            
             # Configurar TF-IDF
             self.tfidf = TfidfVectorizer(
-                stop_words=stopwords.words('spanish'),
+                stop_words=spanish_stopwords,
                 max_features=10000,
                 ngram_range=(1, 2),
                 min_df=2,
