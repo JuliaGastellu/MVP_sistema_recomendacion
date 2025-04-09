@@ -209,8 +209,7 @@ async def root():
         "version": "1.0.0",
         "descripcion": "Sistema de recomendación híbrido que combina TF-IDF y Sentence Transformers para sugerir películas similares",
         "endpoints_disponibles": [
-            "/recomendacion/{titulo}",
-            "/recomendacion_genero/{genero}"
+            "/recomendacion/{titulo}"
         ]
     }
 
@@ -299,87 +298,6 @@ async def recomendar_peliculas(
         return {
             "error": True,
             "mensaje": "Error al generar recomendaciones",
-            "detalle": str(e),
-            "peliculas": []
-        }
-
-@app.get("/recomendacion_genero/{genero}")
-async def recomendar_por_genero(
-    genero: str,
-    limit: int = Query(5, ge=1, le=20, description="Número de recomendaciones a devolver")
-):
-    """
-    Obtiene las películas mejor puntuadas de un género específico.
-    
-    Características:
-    - No es sensible a mayúsculas/minúsculas
-    - Ordena por puntuación de mayor a menor
-    - Devuelve información detallada de cada película
-    
-    Parámetros:
-    - genero: Género de la película (ej: "drama", "acción", "comedia")
-    - limit: Número de recomendaciones (1-20)
-    
-    Retorna:
-    - Lista de películas del género especificado, ordenadas por puntuación
-    """
-    try:
-        # Verificar que el DataFrame esté cargado
-        if df_filtrado is None or df_filtrado.empty:
-            logger.error("El DataFrame está vacío o no se ha cargado correctamente")
-            return {
-                "error": True,
-                "mensaje": "No hay datos disponibles para generar recomendaciones",
-                "peliculas": []
-            }
-        
-        # Limpiar el género
-        genero = genero.lower().strip()
-        if not genero:
-            return {
-                "error": True,
-                "mensaje": "El género no puede estar vacío",
-                "peliculas": []
-            }
-        
-        # Buscar películas del género
-        peliculas_genero = df_filtrado[
-            df_filtrado['generos'].apply(
-                lambda x: any(g.lower().strip() == genero for g in x)
-            )
-        ]
-        
-        if peliculas_genero.empty:
-            return {
-                "error": True,
-                "mensaje": f"No se encontraron películas del género '{genero}'",
-                "peliculas": []
-            }
-        
-        # Ordenar por puntuación y limitar resultados
-        recomendaciones = peliculas_genero.sort_values('puntuacion', ascending=False).head(limit)
-        
-        # Convertir a diccionario
-        peliculas = []
-        for _, row in recomendaciones.iterrows():
-            pelicula = {
-                "titulo": str(row['titulo']),
-                "sinopsis": str(row['sinopsis']),
-                "puntuacion": float(row['puntuacion']),
-                "generos": [str(g) for g in row['generos']]
-            }
-            peliculas.append(pelicula)
-        
-        return {
-            "error": False,
-            "mensaje": f"Recomendaciones del género '{genero}'",
-            "peliculas": peliculas
-        }
-    except Exception as e:
-        logger.error(f"Error en recomendar_por_genero: {str(e)}")
-        return {
-            "error": True,
-            "mensaje": "Error al generar recomendaciones por género",
             "detalle": str(e),
             "peliculas": []
         }
