@@ -257,24 +257,38 @@ async def buscar_peliculas(
             
         query = query.strip().lower()
         
-        # Asegurarse de que las columnas existan y sean del tipo correcto
-        if 'titulo' not in df_filtrado.columns or 'sinopsis' not in df_filtrado.columns:
-            logger.error("Columnas 'titulo' o 'sinopsis' no encontradas en el DataFrame")
+        # Verificar que el DataFrame esté cargado correctamente
+        if df_filtrado is None or df_filtrado.empty:
+            logger.error("El DataFrame está vacío o no se ha cargado correctamente")
             return {
-                "error": True,
-                "mensaje": "Error en la estructura de datos",
-                "detalle": "Columnas necesarias no encontradas en el dataset"
+                "error": False,
+                "mensaje": "No hay datos disponibles para la búsqueda",
+                "resultados": []
             }
         
-        # Convertir columnas a string si no lo son ya
-        df_filtrado['titulo'] = df_filtrado['titulo'].astype(str)
-        df_filtrado['sinopsis'] = df_filtrado['sinopsis'].astype(str)
+        # Verificar que las columnas necesarias existan
+        required_columns = ['titulo', 'sinopsis', 'puntuacion', 'generos']
+        missing_columns = [col for col in required_columns if col not in df_filtrado.columns]
+        
+        if missing_columns:
+            logger.error(f"Columnas faltantes en el DataFrame: {missing_columns}")
+            return {
+                "error": False,
+                "mensaje": "Estructura de datos incompleta",
+                "resultados": []
+            }
+        
+        # Asegurarse de que las columnas sean del tipo correcto
+        df_search = df_filtrado.copy()
+        df_search['titulo'] = df_search['titulo'].fillna('').astype(str)
+        df_search['sinopsis'] = df_search['sinopsis'].fillna('').astype(str)
+        df_search['puntuacion'] = df_search['puntuacion'].fillna(0.0).astype(float)
         
         # Buscar por título (prioridad alta)
-        title_matches = df_filtrado[df_filtrado['titulo'].str.lower().str.contains(query, na=False)]
+        title_matches = df_search[df_search['titulo'].str.lower().str.contains(query, na=False)]
         
         # Buscar por sinopsis (prioridad baja)
-        synopsis_matches = df_filtrado[df_filtrado['sinopsis'].str.lower().str.contains(query, na=False)]
+        synopsis_matches = df_search[df_search['sinopsis'].str.lower().str.contains(query, na=False)]
         
         # Combinar resultados, dando prioridad a los títulos
         results = pd.concat([title_matches, synopsis_matches]).drop_duplicates().head(limit)
@@ -287,46 +301,58 @@ async def buscar_peliculas(
         
         if results.empty:
             # Buscar títulos similares para sugerencias
-            similar_titles = find_similar_titles(query, df_filtrado)
-            if similar_titles:
-                return {
-                    "error": False,
-                    "mensaje": "No se encontraron películas exactas",
-                    "sugerencias": similar_titles[:3],
-                    "resultados": []
-                }
-            else:
-                return {
-                    "error": False,
-                    "mensaje": "No se encontraron películas",
-                    "resultados": []
-                }
+            try:
+                similar_titles = find_similar_titles(query, df_search)
+                if similar_titles:
+                    return {
+                        "error": False,
+                        "mensaje": "No se encontraron películas exactas",
+                        "sugerencias": similar_titles[:3],
+                        "resultados": []
+                    }
+            except Exception as e:
+                logger.error(f"Error al buscar títulos similares: {str(e)}")
+            
+            return {
+                "error": False,
+                "mensaje": "No se encontraron películas",
+                "resultados": []
+            }
         
-        # Preparar resultados
+        # Preparar resultados de manera segura
         formatted_results = []
         for _, row in results.iterrows():
-            # Asegurarse de que los campos existan y tengan valores por defecto
-            titulo = row.get("titulo", "Sin título")
-            sinopsis = row.get("sinopsis", "Sin sinopsis")
-            puntuacion = float(row.get("puntuacion", 0.0))
-            
-            # Manejar géneros de manera segura
-            generos = row.get("generos", [])
-            if isinstance(generos, list):
-                generos_str = ", ".join(generos)
-            else:
-                generos_str = str(generos)
-            
-            formatted_results.append({
-                "titulo": titulo,
-                "sinopsis": sinopsis,
-                "puntuacion": puntuacion,
-                "generos": generos_str
-            })
+            try:
+                # Extraer datos de manera segura
+                titulo = str(row.get("titulo", "Sin título"))
+                sinopsis = str(row.get("sinopsis", "Sin sinopsis"))
+                
+                # Manejar puntuación de manera segura
+                try:
+                    puntuacion = float(row.get("puntuacion", 0.0))
+                except (ValueError, TypeError):
+                    puntuacion = 0.0
+                
+                # Manejar géneros de manera segura
+                generos = row.get("generos", [])
+                if isinstance(generos, list):
+                    generos_str = ", ".join([str(g) for g in generos if g])
+                else:
+                    generos_str = str(generos)
+                
+                formatted_results.append({
+                    "titulo": titulo,
+                    "sinopsis": sinopsis,
+                    "puntuacion": puntuacion,
+                    "generos": generos_str
+                })
+            except Exception as e:
+                logger.error(f"Error al formatear resultado: {str(e)}")
+                # Continuar con el siguiente resultado
         
         return {
             "error": False,
-            "mensaje": f"Se encontraron {len(results)} películas",
+            "mensaje": f"Se encontraron {len(formatted_results)} películas",
             "resultados": formatted_results
         }
     except Exception as e:
