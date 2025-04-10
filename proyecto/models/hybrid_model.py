@@ -93,7 +93,8 @@ class HybridRecommender:
             logger.info(f"Cargando modelo {self.model_name}")
             self.st_model = SentenceTransformer(
                 self.model_name,
-                device='cpu'
+                device='cpu',
+                cache_folder='/opt/render/project/src/.cache/huggingface'
             )
             
             # Asegurarse de que stopwords esté disponible
@@ -107,7 +108,7 @@ class HybridRecommender:
             # Configurar TF-IDF con parámetros optimizados
             self.tfidf = TfidfVectorizer(
                 stop_words=spanish_stopwords,
-                max_features=5000,  # Reducido de 10000
+                max_features=3000,  # Reducido de 5000
                 ngram_range=(1, 2),
                 min_df=2,
                 max_df=0.95,
@@ -176,20 +177,26 @@ class HybridRecommender:
     
     def fit(self):
         """
-        Entrena ambos modelos y calcula las matrices de similitud.
+        Entrena los modelos con los datos cargados.
         """
         try:
             logger.info("Entrenando modelos híbridos")
             
-            # Calcular vectores TF-IDF
-            self.tfidf_matrix = self.tfidf.fit_transform(self.df['texto_tfidf'])
+            # Entrenar TF-IDF
+            self.tfidf_matrix = self.tfidf.fit_transform(self.df['sinopsis_clean'])
             
-            # Calcular vectores Sentence Transformer
-            with ThreadPoolExecutor() as executor:
-                self.st_vectors = self.st_model.encode(
-                    self.df['texto_st'].tolist(),
-                    show_progress_bar=True
-                )
+            # Generar embeddings con Sentence Transformer en lotes
+            batch_size = 32
+            texts = self.df['sinopsis_clean'].tolist()
+            self.st_vectors = []
+            
+            for i in range(0, len(texts), batch_size):
+                batch = texts[i:i + batch_size]
+                batch_embeddings = self.st_model.encode(batch, show_progress_bar=False)
+                self.st_vectors.append(batch_embeddings)
+                gc.collect()  # Forzar liberación de memoria después de cada lote
+            
+            self.st_vectors = np.vstack(self.st_vectors)
             
             logger.info("Modelos entrenados correctamente")
         except Exception as e:
