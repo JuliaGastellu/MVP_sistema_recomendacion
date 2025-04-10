@@ -54,12 +54,41 @@ class MovieRecommendation(BaseModel):
     generos: List[str]
     anio_estreno: int
 
+    class Config:
+        schema_extra = {
+            "example": {
+                "titulo": "Ejemplo de película",
+                "sinopsis": "Esta es una sinopsis de ejemplo",
+                "puntuacion": 8.5,
+                "generos": ["Acción", "Aventura"],
+                "anio_estreno": 2023
+            }
+        }
+
 class RecommendationResponse(BaseModel):
     """Modelo para la respuesta de recomendaciones."""
-    error: bool = Field(..., description="Indica si hubo un error en la solicitud")
-    message: Optional[str] = Field(None, description="Mensaje de error o información adicional")
-    recommendations: Optional[List[MovieRecommendation]] = Field(None, description="Lista de películas recomendadas")
-    suggestions: Optional[List[str]] = Field(None, description="Lista de sugerencias alternativas")
+    error: bool
+    message: Optional[str] = None
+    recommendations: Optional[List[MovieRecommendation]] = None
+    suggestions: Optional[List[str]] = None
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "error": False,
+                "message": None,
+                "recommendations": [
+                    {
+                        "titulo": "Ejemplo de película",
+                        "sinopsis": "Esta es una sinopsis de ejemplo",
+                        "puntuacion": 8.5,
+                        "generos": ["Acción", "Aventura"],
+                        "anio_estreno": 2023
+                    }
+                ],
+                "suggestions": ["Película 1", "Película 2"]
+            }
+        }
 
 # Variable global para el modelo
 model = None
