@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Union
 import uvicorn
 import logging
 import sys
@@ -46,12 +46,20 @@ app.add_middleware(
 )
 
 # Modelo de respuesta
+class MovieRecommendation(BaseModel):
+    """Modelo para una película recomendada."""
+    titulo: str
+    sinopsis: str
+    puntuacion: float
+    generos: List[str]
+    anio_estreno: int
+
 class RecommendationResponse(BaseModel):
     """Modelo para la respuesta de recomendaciones."""
-    error: bool
-    message: Optional[str] = None
-    recommendations: Optional[List[Dict[str, Any]]] = None
-    suggestions: Optional[List[str]] = None
+    error: bool = Field(..., description="Indica si hubo un error en la solicitud")
+    message: Optional[str] = Field(None, description="Mensaje de error o información adicional")
+    recommendations: Optional[List[MovieRecommendation]] = Field(None, description="Lista de películas recomendadas")
+    suggestions: Optional[List[str]] = Field(None, description="Lista de sugerencias alternativas")
 
 # Variable global para el modelo
 model = None
