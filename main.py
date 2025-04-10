@@ -56,8 +56,10 @@ class RecommendationResponse(BaseModel):
 # Cargar el modelo
 try:
     logger.info("Iniciando carga del modelo híbrido...")
+    # Forzar liberación de memoria antes de cargar el modelo
+    gc.collect()
     model = load_hybrid_model()
-    # Forzar liberación de memoria
+    # Forzar liberación de memoria después de cargar el modelo
     gc.collect()
     logger.info("Modelo híbrido cargado correctamente")
 except Exception as e:
