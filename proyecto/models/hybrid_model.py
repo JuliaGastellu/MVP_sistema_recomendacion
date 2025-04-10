@@ -190,11 +190,11 @@ class HybridRecommender:
             logger.info("Entrenando modelos híbridos")
             
             # Entrenar TF-IDF
-            self.tfidf_matrix = self.tfidf.fit_transform(self.df['sinopsis_clean'])
+            self.tfidf_matrix = self.tfidf.fit_transform(self.df['texto_tfidf'])
             
             # Generar embeddings con Sentence Transformer en lotes más pequeños
             batch_size = 4  # Reducido de 8
-            texts = self.df['sinopsis_clean'].tolist()
+            texts = self.df['texto_st'].tolist()
             self.st_vectors = []
             
             for i in range(0, len(texts), batch_size):
