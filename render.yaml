@@ -3,7 +3,7 @@ services:
     name: sistema-recomendacion-peliculas
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT --workers 1
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT --workers 1 --limit-concurrency 1
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
@@ -11,8 +11,13 @@ services:
         value: 1
       - key: TRANSFORMERS_CACHE
         value: /opt/render/project/src/.cache/huggingface
+      - key: TOKENIZERS_PARALLELISM
+        value: "false"
     disk:
       name: data
       mountPath: /opt/render/project/src/proyecto/data
       sizeGB: 1
     plan: starter
+    scaling:
+      minInstances: 1
+      maxInstances: 1

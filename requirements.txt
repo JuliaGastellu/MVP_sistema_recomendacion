@@ -10,4 +10,5 @@ pydantic==2.5.2
 pyarrow==14.0.1
 huggingface-hub==0.16.4
 transformers==4.30.2
-torch==2.0.1
+--find-links https://download.pytorch.org/whl/torch_stable.html
+torch==2.0.1+cpu

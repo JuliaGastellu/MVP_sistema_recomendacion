@@ -42,7 +42,7 @@ class HybridRecommender:
     Clase para el sistema de recomendación híbrido.
     """
     
-    def __init__(self, data_path=None, model_name='paraphrase-multilingual-MiniLM-L12-v2', tfidf_weight=0.6):
+    def __init__(self, data_path=None, model_name='all-MiniLM-L6-v2', tfidf_weight=0.7):
         """
         Inicializa el recomendador híbrido.
         
@@ -113,7 +113,7 @@ class HybridRecommender:
             # Configurar TF-IDF con parámetros optimizados
             self.tfidf = TfidfVectorizer(
                 stop_words=spanish_stopwords,
-                max_features=2000,  # Reducido de 3000
+                max_features=500,  # Reducido de 1000
                 ngram_range=(1, 2),
                 min_df=2,
                 max_df=0.95,
@@ -193,7 +193,7 @@ class HybridRecommender:
             self.tfidf_matrix = self.tfidf.fit_transform(self.df['sinopsis_clean'])
             
             # Generar embeddings con Sentence Transformer en lotes más pequeños
-            batch_size = 16  # Reducido de 32
+            batch_size = 4  # Reducido de 8
             texts = self.df['sinopsis_clean'].tolist()
             self.st_vectors = []
             

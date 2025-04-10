@@ -53,18 +53,24 @@ class RecommendationResponse(BaseModel):
     recommendations: Optional[List[Dict[str, Any]]] = None
     suggestions: Optional[List[str]] = None
 
-# Cargar el modelo
-try:
-    logger.info("Iniciando carga del modelo híbrido...")
-    # Forzar liberación de memoria antes de cargar el modelo
-    gc.collect()
-    model = load_hybrid_model()
-    # Forzar liberación de memoria después de cargar el modelo
-    gc.collect()
-    logger.info("Modelo híbrido cargado correctamente")
-except Exception as e:
-    logger.error(f"Error al cargar el modelo híbrido: {str(e)}")
-    raise
+# Variable global para el modelo
+model = None
+
+@app.on_event("startup")
+async def startup_event():
+    """Evento de inicio de la aplicación."""
+    global model
+    try:
+        logger.info("Iniciando carga del modelo híbrido...")
+        # Forzar liberación de memoria antes de cargar el modelo
+        gc.collect()
+        model = load_hybrid_model()
+        # Forzar liberación de memoria después de cargar el modelo
+        gc.collect()
+        logger.info("Modelo híbrido cargado correctamente")
+    except Exception as e:
+        logger.error(f"Error al cargar el modelo híbrido: {str(e)}")
+        raise
 
 @app.get("/")
 async def root():
