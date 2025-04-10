@@ -161,18 +161,17 @@ class HybridRecommender:
         # Limpiar y normalizar datos
         self.df['titulo_clean'] = self.df['titulo'].apply(self._clean_text)
         self.df['sinopsis_clean'] = self.df['sinopsis'].apply(self._clean_text)
-        self.df['reseñas_clean'] = self.df['reseñas'].apply(self._process_reviews)
         self.df['generos_clean'] = self.df['generos'].apply(lambda x: self._clean_text(str(x)))
         
         # Aplicar stemming para TF-IDF
         self.df['texto_tfidf'] = self.df.apply(
-            lambda row: f"{self._stem_text(row['titulo_clean'])} {self._stem_text(row['generos_clean'])} {self._stem_text(row['sinopsis_clean'])} {self._stem_text(row['reseñas_clean'])}",
+            lambda row: f"{self._stem_text(row['titulo_clean'])} {self._stem_text(row['generos_clean'])} {self._stem_text(row['sinopsis_clean'])}",
             axis=1
         )
         
         # Texto para Sentence Transformer (sin stemming)
         self.df['texto_st'] = self.df.apply(
-            lambda row: f"{row['titulo_clean']} {row['generos_clean']} {row['sinopsis_clean']} {row['reseñas_clean']}",
+            lambda row: f"{row['titulo_clean']} {row['generos_clean']} {row['sinopsis_clean']}",
             axis=1
         )
     
