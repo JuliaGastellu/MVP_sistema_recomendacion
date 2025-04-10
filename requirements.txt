@@ -8,3 +8,6 @@ nltk==3.8.1
 python-multipart==0.0.6
 pydantic==2.5.2
 pyarrow==14.0.1
+huggingface-hub==0.16.4
+transformers==4.30.2
+torch==2.0.1
