@@ -93,8 +93,7 @@ class HybridRecommender:
             logger.info(f"Cargando modelo {self.model_name}")
             self.st_model = SentenceTransformer(
                 self.model_name,
-                device='cpu',
-                compute_dtype='float32'
+                device='cpu'
             )
             
             # Asegurarse de que stopwords esté disponible
