@@ -55,8 +55,8 @@ class MovieRecommendation(BaseModel):
     generos: List[str]
     anio_estreno: int
 
-    class Config:
-        schema_extra = {
+    model_config = {
+        "json_schema_extra": {  # Updated from schema_extra
             "example": {
                 "titulo": "Ejemplo de película",
                 "sinopsis": "Esta es una sinopsis de ejemplo",
@@ -65,6 +65,7 @@ class MovieRecommendation(BaseModel):
                 "anio_estreno": 2023
             }
         }
+    }
 
 class RecommendationResponse(BaseModel):
     """Modelo para la respuesta de recomendaciones."""
@@ -73,8 +74,8 @@ class RecommendationResponse(BaseModel):
     recommendations: Optional[List[MovieRecommendation]] = None
     suggestions: Optional[List[str]] = None
 
-    class Config:
-        schema_extra = {
+    model_config = {
+        "json_schema_extra": {  # Updated from schema_extra
             "example": {
                 "error": False,
                 "message": None,
@@ -90,6 +91,7 @@ class RecommendationResponse(BaseModel):
                 "suggestions": ["Película 1", "Película 2"]
             }
         }
+    }
 
 # Variable global para el modelo
 model = None
