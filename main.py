@@ -8,6 +8,7 @@ import sys
 import os
 import nltk
 import gc
+import tempfile
 
 # Configurar logging
 logging.basicConfig(
@@ -94,7 +95,17 @@ class RecommendationResponse(BaseModel):
 model = None
 
 # At the top with other imports
-import psutil
+import warnings
+warnings.filterwarnings('ignore')
+
+# At the top of the file, after other imports
+import tempfile
+
+# Set up environment variables for model caching
+cache_dir = tempfile.mkdtemp()
+os.environ['TRANSFORMERS_CACHE'] = cache_dir
+os.environ['HF_HOME'] = cache_dir
+os.environ['SENTENCE_TRANSFORMERS_HOME'] = cache_dir
 
 @app.on_event("startup")
 async def startup_event():
@@ -102,16 +113,25 @@ async def startup_event():
     global model
     try:
         logger.info("Iniciando carga del modelo híbrido...")
-        # Log memory usage before loading
-        process = psutil.Process(os.getpid())
-        logger.info(f"Memory usage before loading: {process.memory_info().rss / 1024 / 1024} MB")
-        
-        gc.collect()
-        model = load_hybrid_model()
         gc.collect()
         
-        # Log memory usage after loading
-        logger.info(f"Memory usage after loading: {process.memory_info().rss / 1024 / 1024} MB")
+        # Add error handling for model loading
+        try:
+            # Ensure we're using the correct data path
+            base_dir = os.path.dirname(__file__)
+            data_path = os.path.join(base_dir, 'proyecto', 'data', 'movies_filtrado.parquet')
+            if not os.path.exists(data_path):
+                raise FileNotFoundError(f"No se encuentra el archivo de datos en: {data_path}")
+                
+            model = load_hybrid_model()
+        except ImportError as e:
+            logger.error(f"Error de importación al cargar el modelo: {str(e)}")
+            raise
+        except Exception as e:
+            logger.error(f"Error general al cargar el modelo: {str(e)}")
+            raise
+            
+        gc.collect()
         logger.info("Modelo híbrido cargado correctamente")
     except Exception as e:
         logger.error(f"Error al cargar el modelo híbrido: {str(e)}")

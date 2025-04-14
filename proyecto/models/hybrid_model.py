@@ -37,24 +37,24 @@ except Exception as e:
     logger.error(f"Error al descargar recursos NLTK en hybrid_model: {str(e)}")
     raise
 
+# At the top of the file, after imports
+import tempfile
+
 class HybridRecommender:
-    """
-    Clase para el sistema de recomendación híbrido.
-    """
-    
     def __init__(self, data_path=None, model_name='all-MiniLM-L6-v2', tfidf_weight=0.7):
         """
         Inicializa el recomendador híbrido.
-        
-        Args:
-            data_path (str): Ruta al archivo de datos en formato Parquet.
-            model_name (str): Nombre del modelo de Sentence Transformers.
-            tfidf_weight (float): Peso para las similitudes de TF-IDF (0-1).
         """
         self.data_path = data_path
         self.model_name = model_name
         self.tfidf_weight = tfidf_weight
         self.st_weight = 1 - tfidf_weight
+        
+        # Create a temporary directory for model cache
+        self.cache_dir = tempfile.mkdtemp()
+        os.environ['TRANSFORMERS_CACHE'] = self.cache_dir
+        os.environ['HF_HOME'] = self.cache_dir
+        os.environ['SENTENCE_TRANSFORMERS_HOME'] = self.cache_dir
         
         self.df = None
         self.st_model = None
@@ -99,7 +99,7 @@ class HybridRecommender:
             self.st_model = SentenceTransformer(
                 self.model_name,
                 device='cpu',
-                cache_folder='/opt/render/project/src/.cache/huggingface'
+                cache_folder=self.cache_dir
             )
             
             # Asegurarse de que stopwords esté disponible
@@ -393,8 +393,12 @@ def load_hybrid_model():
     Carga el modelo híbrido desde la ruta del proyecto.
     """
     try:
-        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        data_path = os.path.join(base_dir, 'data', 'movies_filtrado.parquet')
+        # Use the existing data directory in the proyecto folder
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        data_path = os.path.join(base_dir, 'proyecto', 'data', 'movies_filtrado.parquet')
+        
+        if not os.path.exists(data_path):
+            raise FileNotFoundError(f"No se encuentra el archivo de datos en: {data_path}")
         
         model = HybridRecommender(data_path)
         model.fit()
@@ -444,4 +448,4 @@ if __name__ == "__main__":
         else:
             print(year_recommendations['message'])
     except Exception as e:
-        print(f"Error: {str(e)}") 
+        print(f"Error: {str(e)}")
