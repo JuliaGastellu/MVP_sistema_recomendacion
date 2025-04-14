@@ -117,15 +117,26 @@ async def startup_event():
         logger.info("Iniciando carga del modelo híbrido...")
         gc.collect()
         
-        # Add error handling for model loading
         try:
-            # Ensure we're using the correct data path
-            base_dir = os.path.dirname(__file__)
-            data_path = os.path.join(base_dir, 'proyecto', 'data', 'movies_filtrado.parquet')
-            if not os.path.exists(data_path):
-                raise FileNotFoundError(f"No se encuentra el archivo de datos en: {data_path}")
+            # Try multiple possible data paths for different environments
+            possible_paths = [
+                os.path.join(os.path.dirname(__file__), 'proyecto', 'data', 'movies_filtrado.parquet'),
+                os.path.join(os.getcwd(), 'proyecto', 'data', 'movies_filtrado.parquet'),
+                os.path.join('/opt/render/project/src', 'proyecto', 'data', 'movies_filtrado.parquet')
+            ]
+            
+            data_path = None
+            for path in possible_paths:
+                if os.path.exists(path):
+                    data_path = path
+                    break
+                    
+            if not data_path:
+                raise FileNotFoundError(f"No se encuentra el archivo de datos en ninguna ubicación conocida")
                 
+            logger.info(f"Usando archivo de datos en: {data_path}")
             model = load_hybrid_model()
+            
         except ImportError as e:
             logger.error(f"Error de importación al cargar el modelo: {str(e)}")
             raise
@@ -193,5 +204,7 @@ async def recommend_by_genre(
             message=f"Error al procesar la solicitud: {str(e)}"
         )
 
+# Update the main block to handle port from environment
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)  # Changed reload to False for production
