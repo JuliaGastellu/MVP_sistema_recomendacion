@@ -7,7 +7,6 @@ TF-IDF y Sentence Transformers para obtener recomendaciones más precisas.
 
 import pandas as pd
 import numpy as np
-from sentence_transformers import SentenceTransformer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import MinMaxScaler
@@ -37,8 +36,32 @@ except Exception as e:
     logger.error(f"Error al descargar recursos NLTK en hybrid_model: {str(e)}")
     raise
 
-# At the top of the file, after imports
+# At the top of the file, before other imports
+import os
+os.environ['TRANSFORMERS_CACHE'] = '/tmp/transformers_cache'
+os.environ['HF_HOME'] = '/tmp/hf_cache'
+os.environ['SENTENCE_TRANSFORMERS_HOME'] = '/tmp/st_cache'
+
+import pandas as pd
+import numpy as np
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.preprocessing import MinMaxScaler
+import nltk
+from nltk.corpus import stopwords
+from nltk.stem import SnowballStemmer
+import re
+import logging
+from typing import List, Dict, Any, Union, Optional
+import gc
 import tempfile
+
+# Import sentence-transformers with error handling
+try:
+    from sentence_transformers import SentenceTransformer
+except ImportError as e:
+    logging.error(f"Error importing sentence-transformers: {e}")
+    raise
 
 class HybridRecommender:
     def __init__(self, data_path=None, model_name='all-MiniLM-L6-v2', tfidf_weight=0.7):
@@ -50,12 +73,17 @@ class HybridRecommender:
         self.tfidf_weight = tfidf_weight
         self.st_weight = 1 - tfidf_weight
         
-        # Create a temporary directory for model cache
+        # Create cache directories
         self.cache_dir = tempfile.mkdtemp()
-        os.environ['TRANSFORMERS_CACHE'] = self.cache_dir
-        os.environ['HF_HOME'] = self.cache_dir
-        os.environ['SENTENCE_TRANSFORMERS_HOME'] = self.cache_dir
+        for cache_path in ['transformers_cache', 'hf_cache', 'st_cache']:
+            os.makedirs(os.path.join(self.cache_dir, cache_path), exist_ok=True)
         
+        # Set environment variables
+        os.environ['TRANSFORMERS_CACHE'] = os.path.join(self.cache_dir, 'transformers_cache')
+        os.environ['HF_HOME'] = os.path.join(self.cache_dir, 'hf_cache')
+        os.environ['SENTENCE_TRANSFORMERS_HOME'] = os.path.join(self.cache_dir, 'st_cache')
+        
+        # Initialize other attributes
         self.df = None
         self.st_model = None
         self.tfidf = None
@@ -63,45 +91,24 @@ class HybridRecommender:
         self.tfidf_matrix = None
         self.stemmer = SnowballStemmer('spanish')
         
-        # Forzar liberación de memoria
-        gc.collect()
-        
         if data_path:
             self.load_data()
             self.load_models()
-    
-    def load_data(self):
-        """
-        Carga y preprocesa los datos.
-        """
-        try:
-            logger.info(f"Cargando datos desde {self.data_path}")
-            # Cargar solo las columnas necesarias para reducir el uso de memoria
-            self.df = pd.read_parquet(
-                self.data_path,
-                columns=['titulo', 'sinopsis', 'generos', 'anio_estreno', 'puntuacion']
-            )
-            self._preprocess_data()
-            logger.info("Datos cargados y preprocesados correctamente")
-            # Forzar liberación de memoria
-            gc.collect()
-        except Exception as e:
-            logger.error(f"Error al cargar datos: {str(e)}")
-            raise
-    
+
     def load_models(self):
-        """
-        Carga los modelos de Sentence Transformers y TF-IDF.
-        """
         try:
-            # Cargar Sentence Transformer con configuración optimizada
             logger.info(f"Cargando modelo {self.model_name}")
-            self.st_model = SentenceTransformer(
-                self.model_name,
-                device='cpu',
-                cache_folder=self.cache_dir
-            )
-            
+            # Modified model loading with offline fallback
+            try:
+                self.st_model = SentenceTransformer(
+                    self.model_name,
+                    device='cpu',
+                    cache_folder=os.path.join(self.cache_dir, 'st_cache')
+                )
+            except Exception as e:
+                logger.error(f"Error loading model: {e}")
+                raise
+
             # Asegurarse de que stopwords esté disponible
             try:
                 spanish_stopwords = stopwords.words('spanish')
