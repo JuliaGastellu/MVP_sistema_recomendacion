@@ -152,13 +152,12 @@ async def root():
 @app.get("/recommend/title/{title}", response_model=RecommendationResponse)
 async def recommend_by_title(
     title: str,
-    top_n: int = Field(default=10, ge=1, le=50)
+    top_n: int = Query(default=10, ge=1, le=50)  # Changed from Field to Query
 ):
     """Obtener recomendaciones basadas en el título de una película."""
     try:
         logger.info(f"Buscando recomendaciones para título: {title}")
         recommendations = model.recommend_by_title(title, top_n)
-        # Forzar liberación de memoria después de cada recomendación
         gc.collect()
         return RecommendationResponse(
             error=False,
@@ -174,7 +173,7 @@ async def recommend_by_title(
 @app.get("/recommend/genre/{genre}", response_model=RecommendationResponse)
 async def recommend_by_genre(
     genre: str,
-    top_n: int = Field(default=10, ge=1, le=50)
+    top_n: int = Query(default=10, ge=1, le=50)  # Changed from Field to Query
 ):
     """Obtener recomendaciones basadas en el género de una película."""
     try:
