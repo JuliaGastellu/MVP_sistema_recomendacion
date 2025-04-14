@@ -1,6 +1,6 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query  # Added Query here
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel  # Removed Field since we're using Query
 from typing import List, Optional, Dict, Any, Union
 import uvicorn
 import logging
