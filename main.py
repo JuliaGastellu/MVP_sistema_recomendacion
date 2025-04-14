@@ -93,17 +93,25 @@ class RecommendationResponse(BaseModel):
 # Variable global para el modelo
 model = None
 
+# At the top with other imports
+import psutil
+
 @app.on_event("startup")
 async def startup_event():
     """Evento de inicio de la aplicación."""
     global model
     try:
         logger.info("Iniciando carga del modelo híbrido...")
-        # Forzar liberación de memoria antes de cargar el modelo
+        # Log memory usage before loading
+        process = psutil.Process(os.getpid())
+        logger.info(f"Memory usage before loading: {process.memory_info().rss / 1024 / 1024} MB")
+        
         gc.collect()
         model = load_hybrid_model()
-        # Forzar liberación de memoria después de cargar el modelo
         gc.collect()
+        
+        # Log memory usage after loading
+        logger.info(f"Memory usage after loading: {process.memory_info().rss / 1024 / 1024} MB")
         logger.info("Modelo híbrido cargado correctamente")
     except Exception as e:
         logger.error(f"Error al cargar el modelo híbrido: {str(e)}")
